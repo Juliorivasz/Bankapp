@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS usuario (
     nombre_usuario VARCHAR(255) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
-    id_rol BIGINT,
+    id_rol BIGINT NOT NULL,
     estado_cuenta VARCHAR(50) NOT NULL,
     fecha_creacion TIMESTAMP NOT NULL,
     fecha_baja TIMESTAMP NULL,
@@ -50,26 +50,30 @@ CREATE TABLE IF NOT EXISTS direccion (
 CREATE TABLE IF NOT EXISTS tipomoneda (
     id_moneda BIGINT PRIMARY KEY AUTO_INCREMENT,
     nombre_moneda VARCHAR(255) UNIQUE NOT NULL,
-    simbolo VARCHAR(10) UNIQUE NOT NULL
+    simbolo_moneda VARCHAR(10) UNIQUE NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS wallet (
     id_wallet BIGINT PRIMARY KEY AUTO_INCREMENT,
     id_usuario BIGINT NOT NULL,
     id_moneda BIGINT NOT NULL,
+    numero_cuenta VARCHAR(50) UNIQUE NOT NULL,
     balance DECIMAL(18, 8) NOT NULL,
+    estado_wallet VARCHAR(50) NOT NULL DEFAULT 'ACTIVA',
+    fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ultima_actualizacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario),
     FOREIGN KEY (id_moneda) REFERENCES tipomoneda(id_moneda)
 );
 
 CREATE TABLE IF NOT EXISTS transaccion (
     id_transaccion BIGINT PRIMARY KEY AUTO_INCREMENT,
-    id_wallet BIGINT,
+    numero_cuenta VARCHAR(50) NOT NULL,
     monto DECIMAL(18, 8) NOT NULL,
     estado_transaccion VARCHAR(50) NOT NULL,
     fecha_transaccion TIMESTAMP NOT NULL,
     descripcion VARCHAR(255),
-    FOREIGN KEY (id_wallet) REFERENCES wallet(id_wallet)
+    INDEX idx_numero_cuenta (numero_cuenta)
 );
 
 CREATE TABLE IF NOT EXISTS soporte (
@@ -82,3 +86,39 @@ CREATE TABLE IF NOT EXISTS soporte (
     fecha_cierre TIMESTAMP NULL,
     FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario)
 );
+
+CREATE TABLE IF NOT EXISTS historial_estado_wallet (
+    id_historial BIGINT PRIMARY KEY AUTO_INCREMENT,
+    id_wallet BIGINT NOT NULL,
+    estado_anterior VARCHAR(50) NOT NULL,
+    estado_nuevo VARCHAR(50) NOT NULL,
+    fecha_cambio TIMESTAMP NOT NULL,
+    id_administrador BIGINT,
+    FOREIGN KEY (id_wallet) REFERENCES wallet(id_wallet),
+    FOREIGN KEY (id_administrador) REFERENCES usuario(id_usuario)
+    );
+
+CREATE TABLE IF NOT EXISTS log_auditoria (
+    id_log BIGINT PRIMARY KEY AUTO_INCREMENT,
+    id_administrador BIGINT NOT NULL,
+    accion VARCHAR(100) NOT NULL,
+    detalle TEXT,
+    id_usuario_afectado BIGINT,
+    fecha_accion TIMESTAMP NOT NULL,
+    FOREIGN KEY (id_administrador) REFERENCES usuario(id_usuario)
+    );
+
+CREATE TABLE IF NOT EXISTS pais (
+    id_pais BIGINT PRIMARY KEY AUTO_INCREMENT,
+    nombre_pais VARCHAR(100) UNIQUE NOT NULL,
+    codigo_iso VARCHAR(5) UNIQUE NOT NULL
+    );
+
+CREATE TABLE IF NOT EXISTS pais_moneda (
+    id_pais_moneda BIGINT PRIMARY KEY AUTO_INCREMENT,
+    id_pais BIGINT NOT NULL,
+    id_moneda BIGINT NOT NULL,
+    es_principal BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (id_pais) REFERENCES pais(id_pais),
+    FOREIGN KEY (id_moneda) REFERENCES tipomoneda(id_moneda)
+    );

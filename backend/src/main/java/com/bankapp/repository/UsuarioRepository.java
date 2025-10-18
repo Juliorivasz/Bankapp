@@ -10,4 +10,6 @@ public interface UsuarioRepository extends ReactiveCrudRepository<Usuario, Long>
 
     Mono<Usuario> findByNombreUsuario(String nombreUsuario);
 
+    Mono<Long> countByEstadoCuenta(String estado);
+
 }

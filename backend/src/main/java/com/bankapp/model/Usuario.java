@@ -17,7 +17,7 @@ public class Usuario {
     private String email;
     private String password;
     private Long idRol;
-    private EstadoCuenta estadoCuenta;
+    private String estadoCuenta;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaBaja;
 }

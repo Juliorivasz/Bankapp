@@ -1,0 +1,83 @@
+package com.bankapp.controller;
+
+import com.bankapp.config.security.JwtUtil;
+import com.bankapp.model.dto.usuario.JwtResponseDTO;
+import com.bankapp.model.dto.usuario.RegistroDTO;
+import com.bankapp.model.dto.usuario.LoginDTO;
+import com.bankapp.model.dto.usuario.UsuarioResponseDTO;
+import com.bankapp.service.UsuarioService;
+import com.bankapp.service.SecurityUserDetailsService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+import reactor.core.publisher.Mono;
+
+@RestController
+@RequestMapping("/api/auth")
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final UsuarioService usuarioService;
+    private final SecurityUserDetailsService userDetailsService;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
+
+    /**
+     * HISTORIA DE USUARIO: Como cliente, quiero crear una cuenta de forma segura.
+     */
+    @PostMapping("/registro")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Mono<UsuarioResponseDTO> registrarUsuario(@RequestBody RegistroDTO registroDTO) {
+        return usuarioService.registrarUsuario(registroDTO)
+                .map(usuario -> {
+                    // Mapear el Usuario guardado al DTO de respuesta (sin la contraseña)
+                    UsuarioResponseDTO responseDTO = new UsuarioResponseDTO();
+                    responseDTO.setNombreUsuario(usuario.getNombreUsuario());
+                    responseDTO.setEmail(usuario.getEmail());
+                    responseDTO.setEstadoCuenta(usuario.getEstadoCuenta());
+                    responseDTO.setFechaCreacion(usuario.getFechaCreacion());
+                    return responseDTO;
+                });
+    }
+
+    /**
+     * Lógica de Login/Autenticación con verificación segura de contraseña.
+     */
+    @PostMapping("/login")
+    public Mono<JwtResponseDTO> login(@RequestBody LoginDTO loginDTO) {
+
+        // 1. Cargar el usuario por username/email
+        return userDetailsService.findByUsername(loginDTO.getUsername())
+                .flatMap(userDetails -> {
+
+                    if (passwordEncoder.matches(loginDTO.getPassword(), userDetails.getPassword())) {
+
+                        String token = jwtUtil.generateToken(userDetails);
+                        JwtResponseDTO response = new JwtResponseDTO();
+                        response.setToken(token);
+
+                        return Mono.just(response);
+
+                    } else {
+                        // Si la contraseña NO coincide, lanza 401
+                        return Mono.error(new AuthenticationException("Credenciales inválidas.") {});
+                    }
+                })
+                .onErrorResume(e -> {
+                    // Manejo centralizado de errores de login
+                    // AuthenticationException, UsernameNotFoundException, etc. se convierten a 401
+                    if (e instanceof AuthenticationException || e instanceof RuntimeException && e.getMessage().contains("no encontrado")) {
+                        return Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales inválidas o usuario no encontrado."));
+                    }
+                    // Otros errores se propagan
+                    return Mono.error(e);
+                });
+    }
+}

@@ -6,4 +6,5 @@ import reactor.core.publisher.Mono;
 
 public interface RolRepository extends ReactiveCrudRepository<Rol, Long> {
     Mono<Rol> findByNombreRol(String nombreRol);
+    Mono<Rol> findByIdRol(Long idRol);
 }

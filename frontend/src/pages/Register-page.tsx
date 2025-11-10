@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { useMemo, useState } from "react"
 import Navbar from "../components/layout/Navbar"
 import fondoRegister from "/fondo_register.webp"
+import { EyeIcon, EyeOffIcon } from "lucide-react"
 
 function ValidationItem({ text, valid }: { text: string; valid: boolean }) {
   return (
@@ -61,6 +62,8 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPasswordChecks, setShowPasswordChecks] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const validationChecks = useMemo(() => {
     return [
@@ -151,41 +154,47 @@ export default function RegisterPage() {
                   </div>
                   <input
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    onFocus={() => setShowPasswordChecks(true)} // 4. ACTIVAR LA LISTA AL HACER FOCUS
-                    className={classInputForm}
+                    onFocus={() => setShowPasswordChecks(true)}
+                    className={`${classInputForm} pr-12`}
                     placeholder=" "
                     required
                   />
-                  <label
-                    htmlFor="password"
-                    className={classLabelForm}>
-                    Contraseña
-                  </label>
+                  <label htmlFor="password" className={classLabelForm}>Contraseña</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-4 h-full flex items-center text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors z-20"
+                  >
+                    {showPassword ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                  </button>
                 </div>
 
-                {/* Confirmar Contraseña */}
+                {/* --- CONFIRMAR CONTRASEÑA (MODIFICADO) --- */}
                 <div className="relative pt-7 mb-2">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10 top-7">
                     <LockIcon className="w-5 h-5 text-[var(--color-muted-foreground)]" />
                   </div>
                   <input
                     id="confirmPassword"
-                    type="password"
+                    type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    onFocus={() => setShowPasswordChecks(true)} // 4. ACTIVAR LA LISTA AL HACER FOCUS
-                    className={classInputForm}
+                    onFocus={() => setShowPasswordChecks(true)}
+                    className={`${classInputForm} pr-12`}
                     placeholder=" "
                     required
                   />
-                  <label
-                    htmlFor="confirmPassword"
-                    className={classLabelForm}>
-                    Confirmar Contraseña
-                  </label>
+                  <label htmlFor="confirmPassword" className={classLabelForm}>Confirmar Contraseña</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-4 top-4 h-full flex items-center text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors z-20"
+                  >
+                    {showConfirmPassword ? <EyeOffIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+                  </button>
                 </div>
 
                 <div className="flex items-start gap-2 my-6">

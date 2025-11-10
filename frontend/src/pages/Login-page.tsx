@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { useMemo, useState } from "react"
 import Navbar from "../components/layout/Navbar"
 import fondoLogin from "/fondo_wallet.webp"
+import { EyeIcon, EyeOffIcon } from "lucide-react"
 
 function ValidationItem({ text, valid }: { text: string; valid: boolean }) {
   return (
@@ -58,6 +59,7 @@ export default function LoginPage() {
   `;
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [showPasswordChecks, setShowPasswordChecks] = useState(false)
 
   const validationChecks = useMemo(() => {
@@ -104,14 +106,12 @@ export default function LoginPage() {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* --- CAMPO DE CORREO ELECTRÓNICO --- */}
-                <div className="relative pt-7 mb-3"> {/* 1. AÑADIMOS PADDING SUPERIOR AL CONTENEDOR */}
+                <div className="relative pt-7 mb-3">
                   
-                  {/* Icono (sin cambios) */}
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10 top-7"> {/* 2. Ajustamos 'top' */}
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10 top-7">
                     <EmailIcon className="w-5 h-5 text-[var(--color-muted-foreground)]" />
                   </div>
-
-                  {/* Input (con 'peer') */}
+                  
                   <input
                     id="email"
                     type="email"
@@ -138,17 +138,28 @@ export default function LoginPage() {
                   </div>
                   <input
                     id="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onFocus={() => setShowPasswordChecks(true)}
-                    className={classInputForm}
+                    className={`${classInputForm} pr-12`}
                     placeholder=" "
                     required
                   />
-                  <label htmlFor="password" className={classLabelForm}>
-                    Contraseña
-                  </label>
+                  <label htmlFor="password" className={classLabelForm}>Contraseña</label>
+                  
+                  {/* 4. BOTÓN DE MOSTRAR/OCULTAR */}
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-4 h-full flex items-center text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors z-20"
+                  >
+                    {showPassword ? (
+                      <EyeOffIcon className="w-5 h-5" />
+                    ) : (
+                      <EyeIcon className="w-5 h-5" />
+                    )}
+                  </button>
                 </div>
 
                 <div className="flex items-center justify-between text-sm">

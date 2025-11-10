@@ -2,14 +2,73 @@
 
 import type React from "react"
 import { Link } from "react-router-dom"
-import { motion } from "framer-motion"
-import { useState } from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import { useMemo, useState } from "react"
 import Navbar from "../components/layout/Navbar"
-import fondoLogin from "/fondo_wallet.webp" // Asegúrate de que esta ruta sea correcta
+import fondoLogin from "/fondo_wallet.webp"
+
+function ValidationItem({ text, valid }: { text: string; valid: boolean }) {
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      className={`flex items-center gap-2 text-sm ${
+        valid ? "text-green-400" : "text-[var(--color-muted-foreground)]"
+      }`}
+    >
+      <div
+        className={`w-2 h-2 rounded-full ${
+          valid ? "bg-green-500" : "bg-red-500"
+        }`}
+      />
+      {text}
+    </motion.div>
+  )
+}
 
 export default function LoginPage() {
+  const classInputForm = `peer 
+    w-full pl-11 pr-4 py-3
+    bg-blue-950/90 focus:bg-[var(--color-input)] 
+    rounded-xl focus:outline-none transition-all`
+  
+  const classLabelForm = `
+  absolute 
+  text-[var(--color-muted-foreground)]
+  transition-all duration-300 
+  transform 
+  pointer-events-none
+  
+  left-11 top-1/2 scale-100
+  
+  peer-focus:top-0                 
+  peer-focus:left-0                 
+  peer-focus:scale-100   
+  peer-focus:text-sm               
+  peer-focus:font-medium            
+  peer-focus:text-[var(--color-foreground)]
+  
+  peer-[:not(:placeholder-shown)]:top-0
+  peer-[:not(:placeholder-shown)]:left-0
+  peer-[:not(:placeholder-shown)]:scale-100
+  peer-[:not(:placeholder-shown)]:text-sm
+  peer-[:not(:placeholder-shown)]:font-medium
+  peer-[:not(:placeholder-shown)]:text-[var(--color-foreground)]
+  `;
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPasswordChecks, setShowPasswordChecks] = useState(false)
+
+  const validationChecks = useMemo(() => {
+    return [
+      { text: "Mínimo 6 caracteres", valid: password.length >= 6 },
+      { text: "Una mayúscula (A-Z)", valid: /[A-Z]/.test(password) },
+      { text: "Una minúscula (a-z)", valid: /[a-z]/.test(password) },
+      { text: "Un número (0-9)", valid: /[0-9]/.test(password) },
+      { text: "Un carácter especial (!@#...)", valid: /[^A-Za-z0-9]/.test(password) },
+    ]
+  }, [password])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,7 +108,7 @@ export default function LoginPage() {
                   
                   {/* Icono (sin cambios) */}
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10 top-7"> {/* 2. Ajustamos 'top' */}
-                    <EmailIcon className="w-5 h-5 text-[var(--color-primary)]" />
+                    <EmailIcon className="w-5 h-5 text-[var(--color-muted-foreground)]" />
                   </div>
 
                   {/* Input (con 'peer') */}
@@ -58,102 +117,36 @@ export default function LoginPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="
-                      peer 
-                      w-full pl-11 pr-4 py-3
-                      bg-blue-950/90 focus:bg-[var(--color-input)] 
-                      rounded-xl focus:outline-none transition-all
-                    "
-                    placeholder=" " /* <-- Placeholder de espacio (¡obligatorio!) */
+                    className={classInputForm}
+                    placeholder=" "
                     required
                   />
 
                   {/* Label Flotante */}
                   <label
                     htmlFor="email"
-                    className="
-                      absolute 
-                      text-[var(--color-muted-foreground)]
-                      transition-all duration-300 
-                      transform 
-                      pointer-events-none
-
-                      /* 3. Posición por defecto (en el medio, como placeholder) */
-                      left-11 top-1/2 scale-100
-
-                      /* 4. Posición 'flotando' (¡FUERA y ARRIBA!) */
-                      peer-focus:top-0                 
-                      peer-focus:left-0                 
-                      peer-focus:scale-100   
-                      peer-focus:text-sm               
-                      peer-focus:font-medium            
-                      peer-focus:text-[var(--color-foreground)]
-
-                      peer-[:not(:placeholder-shown)]:top-0
-                      peer-[:not(:placeholder-shown)]:left-0
-                      peer-[:not(:placeholder-shown)]:scale-100
-                      peer-[:not(:placeholder-shown)]:text-sm
-                      peer-[:not(:placeholder-shown)]:font-medium
-                      peer-[:not(:placeholder-shown)]:text-[var(--color-foreground)]
-                    "
+                    className={classLabelForm}
                   >
                     Correo Electrónico
                   </label>
                 </div>
 
                 {/* --- CAMPO DE CONTRASEÑA --- */}
-                <div className="relative pt-7 mb-[3rem]"> {/* 1. AÑADIMOS PADDING SUPERIOR AL CONTENEDOR */}
-
-                  {/* Icono (ajustado con 'top-7') */}
+                <div className="relative pt-7 mb-6">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10 top-7">
-                    <LockIcon className="w-5 h-5 text-[var(--color-primary)]" />
+                    <LockIcon className="w-5 h-5 text-[var(--color-muted-foreground)]" />
                   </div>
-
-                  {/* Input (con 'peer') */}
                   <input
                     id="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="
-                      peer 
-                      w-full pl-11 pr-4 py-3 
-                      bg-blue-950/90 focus:bg-[var(--color-input)] 
-                      rounded-xl focus:outline-none transition-all
-                    "
-                    placeholder=" " /* <-- Placeholder de espacio */
+                    onFocus={() => setShowPasswordChecks(true)}
+                    className={classInputForm}
+                    placeholder=" "
                     required
                   />
-
-                  {/* Label Flotante */}
-                  <label
-                    htmlFor="password"
-                    className="
-                      absolute 
-                      text-[var(--color-muted-foreground)]
-                      transition-all duration-300 
-                      transform 
-                      pointer-events-none
-
-                      /* Posición por defecto */
-                      left-11 top-1/2 scale-100
-
-                      /* Posición 'flotando' (FUERA y ARRIBA) */
-                      peer-focus:top-0
-                      peer-focus:left-0
-                      peer-focus:scale-100
-                      peer-focus:text-sm
-                      peer-focus:font-medium
-                      peer-focus:text-[var(--color-foreground)]
-
-                      peer-[:not(:placeholder-shown)]:top-0
-                      peer-[:not(:placeholder-shown)]:left-0
-                      peer-[:not(:placeholder-shown)]:scale-100
-                      peer-[:not(:placeholder-shown)]:text-sm
-                      peer-[:not(:placeholder-shown)]:font-medium
-                      peer-[:not(:placeholder-shown)]:text-[var(--color-foreground)]
-                    "
-                  >
+                  <label htmlFor="password" className={classLabelForm}>
                     Contraseña
                   </label>
                 </div>
@@ -170,7 +163,7 @@ export default function LoginPage() {
 
                 <button
                   type="submit"
-                  className="w-full bg-[var(--color-button)] text-primary-foreground py-3.5 rounded-xl font-bold text-lg hover:bg-primary/90 transition-all hover:scale-[1.02] shadow-xl"
+                  className="w-full cursor-pointer bg-[var(--color-button)] text-primary-foreground py-3.5 rounded-xl font-bold text-lg hover:bg-primary/90 transition-all hover:scale-[1.02] shadow-xl"
                 >
                   Iniciar Sesión
                 </button>
@@ -188,6 +181,32 @@ export default function LoginPage() {
 
             {/* --- Columna Derecha (La otra mitad de la imagen de fondo) --- */}
             <div className="hidden lg:block lg:w-1/2 relative">
+              <div className="relative z-10 pt-10 px-12">
+                <AnimatePresence mode="wait">
+                  {showPasswordChecks && (
+                    // Si 'showPasswordChecks' es true, muestra la lista
+                    <motion.div
+                      key="checks"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.4, ease: "easeOut" }}
+                      className="bg-black/40 backdrop-blur-md p-6 rounded-xl border border-white/10 shadow-2xl"
+                    >
+                      <h3 className="text-lg font-semibold text-white mb-4">Requisitos de Contraseña</h3>
+                      <div className="space-y-3">
+                        {validationChecks.map((check, index) => (
+                          <ValidationItem
+                            key={index}
+                            text={check.text}
+                            valid={check.valid}
+                          />
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
                 <div className="
                   absolute inset-0 w-full h-full 
                   bg-gradient-to-bl 
@@ -209,7 +228,7 @@ export default function LoginPage() {
   )
 }
 
-// --- Componentes de Iconos (sin cambios) ---
+// --- Componentes de Iconos ---
 function EmailIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>

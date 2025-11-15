@@ -229,6 +229,33 @@ public class UsuarioService {
         }
     }
 
+    /**
+     * Permite al usuario solicitar un nuevo link de verificación si el anterior expiró.
+     * @param email Email del usuario.
+     * @return Mono<Void> indicando éxito.
+     */
+    @Transactional
+    public Mono<Void> reenviarTokenVerificacion(String email) {
+
+        // 1. Buscar el usuario por email
+        return usuarioRepository.findByEmail(email)
+                .switchIfEmpty(Mono.error(new RuntimeException("Usuario no encontrado.")))
+                .flatMap(usuario -> {
+
+                    // 2. Validar que la cuenta NO esté activa.
+                    if (usuario.getEstadoCuenta().equals(EstadoCuenta.ACTIVA.name())) {
+                        return Mono.error(new IllegalArgumentException("La cuenta ya está activa. No se requiere reenvío."));
+                    }
+
+                    // 3. Generar un nuevo token JWT
+                    String newToken = jwtUtil.generateVerificationToken(usuario.getEmail());
+
+                    // 4. Enviar el correo con el nuevo token (no bloqueante)
+                    return emailService.enviarCorreoVerificacion(usuario, newToken)
+                            .then(Mono.empty()); // Devolver Mono<Void> para indicar que la operación terminó.
+                });
+    }
+
     public Mono<Usuario> obtenerPorNombreUsuario(String nombreUsuario) {
         return usuarioRepository.findByNombreUsuario(nombreUsuario);
     }

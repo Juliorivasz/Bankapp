@@ -34,6 +34,18 @@ public class AuthController {
     }
 
     /**
+     * Endpoint público para solicitar un nuevo link de verificación.
+     * Ruta: POST /api/auth/reenviar-verificacion
+     */
+    @PostMapping("/reenviar/verificacion")
+    @ResponseStatus(HttpStatus.OK)
+    public Mono<String> reenviarVerificacion(@RequestBody EmailDTO emailDTO) {
+
+        return usuarioService.reenviarTokenVerificacion(emailDTO.getEmail())
+                .thenReturn("Un nuevo enlace de verificación ha sido enviado a " + emailDTO.getEmail());
+    }
+
+    /**
      * Endpoint público para la verificación de usuario.
      * Ruta: GET /api/auth/usuario/validar?usuario=
      */

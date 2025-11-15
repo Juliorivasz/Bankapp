@@ -55,6 +55,7 @@ public class SecurityConfig {
                         .pathMatchers("/api/auth/registro/**",
                                 "/api/auth/login",
                                 "/api/auth/usuario/validar",
+                                "/api/auth/verificar",
                                 "/api/paises/**",
                                 "/api/publico/**",
                                 "/ping").permitAll()

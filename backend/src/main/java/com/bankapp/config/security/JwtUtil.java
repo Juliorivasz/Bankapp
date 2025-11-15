@@ -105,7 +105,7 @@ public class JwtUtil {
      */
     public String getEmailFromVerificationToken(String token) {
         Claims claims = Jwts.parser()
-                .setSigningKey(secret)
+                .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();

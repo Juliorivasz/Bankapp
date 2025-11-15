@@ -8,6 +8,7 @@ import com.bankapp.model.dto.reporte.ReporteActividadDTO;
 import com.bankapp.repository.UsuarioRepository;
 import com.bankapp.service.AdminService;
 import com.bankapp.service.SoporteService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -27,6 +28,7 @@ import java.time.LocalDate;
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
+@SecurityRequirement(name = "BearerAuth")
 public class AdminController {
 
     private final AdminService adminService;

@@ -12,16 +12,16 @@ import java.util.Map;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-//    @ExceptionHandler(IllegalArgumentException.class)
-//    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(IllegalArgumentException ex) {
-//        Map<String, Object> errorDetails = new HashMap<>();
-//        errorDetails.put("timestamp", LocalDateTime.now());
-//        errorDetails.put("status", HttpStatus.BAD_REQUEST.value());
-//        errorDetails.put("error", "Bad Request");
-//        errorDetails.put("message", ex.getMessage());
-//
-//        return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
-//    }
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(IllegalArgumentException ex) {
+        Map<String, Object> errorDetails = new HashMap<>();
+        errorDetails.put("timestamp", LocalDateTime.now());
+        errorDetails.put("status", HttpStatus.BAD_REQUEST.value());
+        errorDetails.put("error", "Bad Request");
+        errorDetails.put("message", ex.getMessage());
+
+        return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
+    }
 //
 //    @ExceptionHandler(RuntimeException.class)
 //    public ResponseEntity<Map<String, Object>> handleNotFoundException(RuntimeException ex) {

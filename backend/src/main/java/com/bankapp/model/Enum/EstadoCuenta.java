@@ -4,5 +4,6 @@ public enum EstadoCuenta {
     ACTIVA,
     BLOQUEADA,
     PENDIENTE_ACTIVACION,
+    PENDIENTE_PERFIL,
     SUSPENDIDO
 }

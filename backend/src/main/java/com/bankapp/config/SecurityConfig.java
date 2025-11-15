@@ -52,7 +52,15 @@ public class SecurityConfig {
                 // Reglas de autorización para las rutas
                 .authorizeExchange(exchanges -> exchanges
                         // Tus rutas públicas
-                        .pathMatchers("/api/auth/registro", "/api/auth/login").permitAll()
+                        .pathMatchers("/api/auth/registro/**",
+                                "/api/auth/login",
+                                "/api/auth/usuario/validar",
+                                "/api/paises/**",
+                                "/api/publico/**",
+                                "/ping").permitAll()
+                        .pathMatchers("/v3/api-docs/**").permitAll()
+                        // rutas de swagger
+                        .pathMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**", "/webjars/**").permitAll()
                         // Todas las demás rutas requieren autenticación
                         .anyExchange().authenticated()
                 )

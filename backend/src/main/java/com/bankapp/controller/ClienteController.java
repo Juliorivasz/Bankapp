@@ -13,6 +13,7 @@ import com.bankapp.service.SoporteService;
 import com.bankapp.service.TransaccionService;
 import com.bankapp.service.UsuarioService;
 import com.bankapp.service.WalletService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,6 +27,7 @@ import reactor.core.publisher.Mono;
 @RequestMapping("/api/cliente")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('CLIENTE')")
+@SecurityRequirement(name = "BearerAuth")
 public class ClienteController {
 
     private final TransaccionService transaccionService;
@@ -79,13 +81,13 @@ public class ClienteController {
     }
 
     // --- 5. Ver Historial ---
-    @GetMapping("/transacciones/{idWallet}")
+    @GetMapping("/transacciones/{numeroCuenta}")
     public Flux<Transaccion> verHistorial(@PathVariable String numeroCuenta) {
         return transaccionService.verHistorial(numeroCuenta);
     }
 
 
-    // --- 6. Crear Solicitud de Soporte (Historia de Usuario) ---
+    // --- 6. Crear Solicitud de Soporte ---
     @PostMapping("/soporte")
     @ResponseStatus(HttpStatus.CREATED)
     public Mono<Soporte> crearSolicitud(@RequestBody NuevaSolicitudDTO dto, Mono<Authentication> auth) {

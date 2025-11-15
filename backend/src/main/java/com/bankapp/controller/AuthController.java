@@ -1,21 +1,14 @@
 package com.bankapp.controller;
 
 import com.bankapp.config.security.JwtUtil;
-import com.bankapp.model.dto.usuario.JwtResponseDTO;
-import com.bankapp.model.dto.usuario.RegistroDTO;
-import com.bankapp.model.dto.usuario.LoginDTO;
-import com.bankapp.model.dto.usuario.UsuarioResponseDTO;
+import com.bankapp.model.dto.usuario.*;
 import com.bankapp.service.UsuarioService;
 import com.bankapp.service.SecurityUserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
@@ -30,6 +23,29 @@ public class AuthController {
     private final JwtUtil jwtUtil;
 
     /**
+     * Endpoint público para la verificación de cuenta por email.
+     * Ruta: GET /api/auth/verificar?token=[JWT]
+     */
+    @GetMapping("/verificar")
+    public Mono<String> verificarCuenta(@RequestParam String token) {
+
+        return usuarioService.verificarToken(token)
+                .thenReturn("Cuenta verificada exitosamente. Ahora puedes iniciar sesión.");
+    }
+
+    /**
+     * Endpoint público para la verificación de usuario.
+     * Ruta: GET /api/auth/usuario/validar?usuario=
+     */
+    @GetMapping("/usuario/validar")
+    @ResponseStatus(HttpStatus.OK)
+    public Mono<String> validarUsuario(@RequestParam("usuario") String usuario) {
+
+        return usuarioService.validarUsuarioNoExiste(usuario)
+                .thenReturn("Nombre de usuario disponible.");
+    }
+
+    /**
      * HISTORIA DE USUARIO: Como cliente, quiero crear una cuenta de forma segura.
      */
     @PostMapping("/registro")
@@ -37,7 +53,6 @@ public class AuthController {
     public Mono<UsuarioResponseDTO> registrarUsuario(@RequestBody RegistroDTO registroDTO) {
         return usuarioService.registrarUsuario(registroDTO)
                 .map(usuario -> {
-                    // Mapear el Usuario guardado al DTO de respuesta (sin la contraseña)
                     UsuarioResponseDTO responseDTO = new UsuarioResponseDTO();
                     responseDTO.setNombreUsuario(usuario.getNombreUsuario());
                     responseDTO.setEmail(usuario.getEmail());
@@ -45,6 +60,21 @@ public class AuthController {
                     responseDTO.setFechaCreacion(usuario.getFechaCreacion());
                     return responseDTO;
                 });
+    }
+
+    @PostMapping("/registro/rapido")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Mono<UsuarioResponseDTO> registrarUsuarioRapido(@RequestBody RegistroRapidoDTO registroDTO) {
+        return usuarioService.registrarUsuarioRapido(registroDTO)
+                .map(usuario -> {
+                    UsuarioResponseDTO responseDTO = new UsuarioResponseDTO();
+                    responseDTO.setNombreUsuario(usuario.getNombreUsuario());
+                    responseDTO.setEmail(usuario.getEmail());
+                    responseDTO.setEstadoCuenta(usuario.getEstadoCuenta());
+                    responseDTO.setFechaCreacion(usuario.getFechaCreacion());
+                    return responseDTO;
+                });
+        //
     }
 
     /**

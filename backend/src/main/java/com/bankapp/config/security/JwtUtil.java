@@ -79,4 +79,42 @@ public class JwtUtil {
                 .parseClaimsJws(token)
                 .getBody();
     }
+
+    /**
+     * Genera un token JWT para la verificación de email (vida corta).
+     * @param email El email del usuario a verificar.
+     */
+    public String generateVerificationToken(String email) {
+        long verificationExpiration = 24 * 60 * 60 * 1000; // 24 horas
+
+        return Jwts.builder()
+                .setSubject(email)
+                // Claim personalizado para distinguir este token del token de sesión
+                .claim("purpose", "VERIFICATION")
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + verificationExpiration))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    /**
+     * Valida y extrae el sujeto (email) del token de verificación.
+     * @param token El token JWT recibido.
+     * @return El email del usuario.
+     * @throws JwtException si el token es inválido o expirado.
+     */
+    public String getEmailFromVerificationToken(String token) {
+        Claims claims = Jwts.parser()
+                .setSigningKey(secret)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        // Se puede añadir una verificación extra del propósito del token aquí si se desea.
+        if (!"VERIFICATION".equals(claims.get("purpose"))) {
+            throw new IllegalArgumentException("El token no es un token de verificación.");
+        }
+
+        return claims.getSubject();
+    }
 }

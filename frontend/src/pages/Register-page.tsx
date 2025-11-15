@@ -3,13 +3,17 @@
 import type React from "react"
 import { Link } from "react-router-dom"
 import { AnimatePresence, motion } from "framer-motion"
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useState, useEffect, useRef } from "react"
 import Navbar from "../components/layout/Navbar"
 import fondoRegister from "/fondo_register.webp"
-import { EyeIcon } from "lucide-react"
+import { 
+  EyeIcon, ExternalLink, Mail, Loader2, CheckCircleIcon, XCircleIcon 
+} from "lucide-react"
 import type { ICountry } from "../types/auth/Country"
+import { authService } from "../service/auth.service";
+import { AxiosError } from "axios"
+import { ExceptionAlert } from "../utils/exceptions/ExceptionAlert"
 
-// ... (ValidationItem se mantiene igual) ...
 function ValidationItem({ text, valid }: { text: string; valid: boolean }) {
   return (
     <motion.div
@@ -26,9 +30,35 @@ function ValidationItem({ text, valid }: { text: string; valid: boolean }) {
   )
 }
 
+function ValidationStatusIcon({ status, message }: { status: string; message: string }) {
+  if (status === 'idle') return null;
+
+  return (
+    // Contenedor 'group' para el tooltip
+    <div className="group absolute right-4 top-7 h-full flex items-center z-20" style={{ maxHeight: '48px' }}>
+      {/* Icono dinámico */}
+      {status === 'checking' && <Loader2 className="w-5 h-5 text-[var(--color-muted-foreground)] animate-spin" />}
+      {status === 'available' && <CheckCircleIcon className="w-5 h-5 text-green-500" />}
+      {status === 'unavailable' && <XCircleIcon className="w-5 h-5 text-red-500" />}
+      
+      {/* Tooltip (se muestra al hacer hover en 'group') */}
+      {message && (
+        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-max max-w-xs
+                      opacity-0 group-hover:opacity-100 transition-opacity
+                      bg-black/80 text-white text-xs rounded-md shadow-lg p-2
+                      pointer-events-none z-50">
+          {message}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 export default function RegisterPage() {
+
+  const { fetchPaises, registroRapido, validarUsuario } = authService;
   
-  // --- TUS VARIABLES DE ESTILO (SIN CAMBIOS) ---
   const classInputForm = `peer 
     w-full pl-11 pr-4 py-3
     bg-blue-950/90 focus:bg-[var(--color-input)] 
@@ -58,53 +88,115 @@ export default function RegisterPage() {
   peer-[:not(:placeholder-shown)]:text-[var(--color-foreground)]
   `;
 
-  // --- 1. ESTADOS ---
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 2
 
-  // Estado simplificado para el DTO de /registro/rapido
   const [formData, setFormData] = useState({
     pais: "",
     nombreUsuario: "",
     email: "",
     password: "",
-    confirmPassword: "", // Solo para validación del front
+    confirmPassword: "",
   })
 
-  // Estados de UI
+  const handleOpenMailApp = () => {
+    const domain = formData.email.split('@')[1]?.toLowerCase();
+    
+    if (domain === 'gmail.com') {
+      window.open('https://mail.google.com/mail/u/0', '_blank');
+    } else if (['outlook.com', 'hotmail.com', 'live.com'].includes(domain)) {
+      window.open('https://outlook.live.com/mail/0/inbox', '_blank');
+    } else if (domain === 'yahoo.com') {
+      window.open('https://mail.yahoo.com', '_blank');
+    } else {
+      window.location.href = 'mailto:';
+    }
+  };
+
   const [countries, setCountries] = useState<ICountry[]>([])
   const [isCountryDropdownOpen, setIsCountryDropdownOpen] = useState(false)
   const [showPasswordChecks, setShowPasswordChecks] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  
-  // Estado para mensaje de éxito/error
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [usernameValidation, setUsernameValidation] = useState({
+    status: 'idle',
+    message: ''
+  });
   const [apiError, setApiError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
-  // --- 2. LÓGICA ---
+  // Ref para el temporizador del debounce
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Cargar países
   useEffect(() => {
-    fetch("http://localhost:8080/api/paises/")
-      .then(res => res.json())
-      .then(data => setCountries(data))
-      .catch(err => console.error("Error cargando países:", err))
-  }, [])
+    const loadCountries = async () => {
+      try {
+        const data = await fetchPaises();
+        setCountries(data);
+      } catch (error) {
+        console.error("Error cargando países:", error);
+      }
+    };
+    void loadCountries();
+  }, [fetchPaises])
+  
+  useEffect(() => {
+    // Limpiamos el timer anterior
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
 
-  // Handler de cambio genérico
+    const username = formData.nombreUsuario;
+
+    // Si el campo está vacío o muy corto, resetea
+    if (username.length < 3) {
+      setUsernameValidation({ status: 'idle', message: '' });
+      return;
+    }
+
+    // Mostramos "Verificando..." inmediatamente
+    setUsernameValidation({ status: 'checking', message: 'Verificando...' });
+
+    // Creamos un nuevo timer
+    debounceTimer.current = setTimeout(() => {
+      const validateUsername = async () => {
+        try {
+          const message = await validarUsuario(username);
+
+          if (message) {
+            setUsernameValidation({ status: 'available', message: message || "¡Usuario disponible!" });
+          }
+        } catch (error) {
+          let errorMessage = "No se pudo conectar al servidor."; 
+          if (error instanceof AxiosError && error.response) {
+            errorMessage = error.response.data.message || errorMessage;
+          }
+          setUsernameValidation({ status: 'unavailable', message: errorMessage });
+        }
+      };
+      
+      validateUsername();
+    }, 800);
+
+    // Limpieza al desmontar o si el valor cambia de nuevo
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, [formData.nombreUsuario, validarUsuario]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  // Handler para el selector de país
   const handleCountrySelect = (country: ICountry) => {
     setFormData(prev => ({ ...prev, pais: country.nombrePais }));
     setIsCountryDropdownOpen(false);
   }
 
-  // Validación de contraseña
   const validationChecks = useMemo(() => {
     const { password } = formData
     return [
@@ -116,25 +208,38 @@ export default function RegisterPage() {
     ]
   }, [formData])
 
-  // Envío y navegación de pasos
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setApiError("") // Limpia errores previos
+    setApiError("") 
 
     if (currentStep === 1) {
       if (!formData.pais) {
-        alert("Por favor, selecciona tu país.");
+        ExceptionAlert.warning("Por favor, selecciona tu país de residencia.");
         return;
       }
-      setCurrentStep(2) // Avanza al siguiente paso
+      setCurrentStep(2)
     } else {
-      // Es el último paso, enviar al backend
+
       if (formData.password !== formData.confirmPassword) {
-        alert("Las contraseñas no coinciden.");
+        ExceptionAlert.warning("Las contraseñas no coinciden.");
+        return;
+      }
+
+      if (usernameValidation.status === 'unavailable') {
+        ExceptionAlert.warning("El nombre de usuario no está disponible. Elige otro.");
+        return;
+      }
+
+      if (usernameValidation.status === 'checking') {
+        ExceptionAlert.warning("Por favor, espera a que termine la validación del nombre de usuario.");
+        return;
+      }
+
+      if (validationChecks.some(check => !check.valid)) {
+        ExceptionAlert.warning("La contraseña no cumple con todos los requisitos.");
         return;
       }
       
-      // Construimos el DTO final
       const dtoToSend = {
         nombreUsuario: formData.nombreUsuario,
         email: formData.email,
@@ -142,26 +247,22 @@ export default function RegisterPage() {
         pais: formData.pais
       }
 
+      setIsLoading(true); 
+
       console.log("Enviando a /api/auth/registro/rapido:", dtoToSend)
 
       try {
-        const response = await fetch("http://localhost:8080/api/auth/registro/rapido", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(dtoToSend)
-        })
+        await registroRapido(dtoToSend);
 
-        if (!response.ok) {
-          const errorData = await response.text() // O .json() si tu backend devuelve un objeto de error
-          throw new Error(errorData || "Error en el registro. Intenta de nuevo.");
-        }
-
-        // Éxito
-        setIsSubmitted(true) // Mostramos la pantalla de "revisa tu correo"
-
+        setIsSubmitted(true) 
       } catch (error) {
+        let errorMessage = "No se pudo conectar al servidor."; 
+          if (error instanceof AxiosError && error.response) {
+            errorMessage = error.response.data.message || errorMessage;
+          }
+        ExceptionAlert.error(errorMessage);
+        setIsLoading(false); 
         console.error("Error en handleSubmit:", error)
-        setApiError(error instanceof Error ? error.message : "Error en el registro. Intenta de nuevo.")
       }
     }
   }
@@ -194,24 +295,46 @@ export default function RegisterPage() {
               
               <AnimatePresence mode="wait">
                 {isSubmitted ? (
-                  // --- VISTA DE ÉXITO ---
                   <motion.div
                     key="success"
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     className="flex flex-col items-center justify-center text-center h-full"
                   >
-                    <EmailIcon className="w-16 h-16 text-green-400 mb-6" />
+                    <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Mail className="w-10 h-10 text-green-500" />
+                    </div>
+                    
                     <h1 className="text-3xl font-bold mb-4">¡Revisa tu correo!</h1>
+                    
                     <p className="text-lg text-[var(--color-muted-foreground)]">
-                      Hemos enviado un enlace de verificación a <span className="font-bold text-white">{formData.email}</span>.
+                      Hemos enviado un enlace de confirmación a:
+                      <br />
+                      <span className="font-bold text-[var(--color-foreground)] text-xl">{formData.email}</span>
                     </p>
-                    <p className="text-md text-[var(--color-muted-foreground)] mt-4">
-                      Haz clic en el enlace para activar tu cuenta.
+                    
+                    <p className="text-md text-[var(--color-muted-foreground)] mt-4 max-w-sm mx-auto">
+                      Haz clic en el enlace del correo para activar tu cuenta y continuar.
                     </p>
-                    <Link to="/login" className="mt-8 w-full bg-[var(--color-primary)] text-[var(--color-primary-foreground)] py-3.5 rounded-xl font-bold text-lg hover:bg-[var(--color-primary)]/90 transition-all shadow-xl text-center">
-                      Volver a Inicio
-                    </Link>
+
+                    <div className="w-full space-y-3 mt-8">
+                      {/* BOTÓN PRINCIPAL: IR AL CORREO */}
+                      <button 
+                        onClick={handleOpenMailApp}
+                        className="w-full flex items-center justify-center gap-2 bg-[var(--color-primary)] text-[var(--color-primary-foreground)] py-3.5 rounded-xl font-bold text-lg hover:bg-[var(--color-primary)]/90 transition-all shadow-xl transform hover:-translate-y-1"
+                      >
+                        Abrir Correo
+                        <ExternalLink className="w-5 h-5" />
+                      </button>
+
+                      {/* BOTÓN SECUNDARIO: VOLVER AL LOGIN */}
+                      <Link 
+                        to="/login" 
+                        className="flex items-center justify-center w-full py-3.5 rounded-xl font-bold text-lg border border-[var(--color-border)] text-[var(--color-foreground)] hover:bg-[var(--color-input)] transition-all"
+                      >
+                        Volver al Inicio de Sesión
+                      </Link>
+                    </div>
                   </motion.div>
                 ) : (
                   // --- VISTA DEL FORMULARIO WIZARD ---
@@ -251,7 +374,6 @@ export default function RegisterPage() {
                               <div className="relative pt-7 mb-2">
                                 <label className="absolute top-0 left-0 text-sm font-medium text-[var(--color-foreground)]">País de Residencia</label>
                                 <div className="relative">
-                                  {/* Este botón imita tu 'classInputForm' */}
                                   <button
                                     type="button"
                                     onClick={() => setIsCountryDropdownOpen(!isCountryDropdownOpen)}
@@ -312,7 +434,12 @@ export default function RegisterPage() {
                               <div className="relative pt-7 mb-2">
                                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10 top-7"><UserIcon className="w-5 h-5 text-[var(--color-muted-foreground)]" /></div>
                                 <input id="nombreUsuario" name="nombreUsuario" type="text" value={formData.nombreUsuario} onChange={handleChange} className={classInputForm} placeholder=" " required />
-                                <label htmlFor="nombreUsuario" className={classLabelForm}>Nombre de Usuario</label>
+                                  <label htmlFor="nombreUsuario" className={classLabelForm}>Nombre de Usuario</label>
+                                  {/* Icono de validación */}
+                                  <ValidationStatusIcon 
+                                    status={usernameValidation.status} 
+                                    message={usernameValidation.message} 
+                                  />
                               </div>
                               
                               <div className="relative pt-7 mb-2">
@@ -357,9 +484,22 @@ export default function RegisterPage() {
                           type="submit"
                           className="w-full bg-[var(--color-primary)] text-[var(--color-primary-foreground)] py-3.5 rounded-xl font-bold text-lg hover:bg-[var(--color-primary)]/90 transition-all shadow-xl"
                         >
-                          {currentStep === totalSteps ? "Crear Cuenta" : "Siguiente"}
+                          {isLoading ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                              Procesando...
+                            </div>
+                          ) : (
+                            currentStep === totalSteps ? "Crear Cuenta" : "Siguiente"
+                          )}
                         </button>
-                      </div>
+                        </div>
+                        {/* Mensaje de Error de la API */}
+                        {apiError && (
+                        <div className="text-red-400 text-sm font-medium text-center mt-4">
+                          {apiError}
+                        </div>
+                      )}
                     </form>
 
                     <div className="mt-8 text-center">

@@ -1,12 +1,15 @@
 "use client"
 
 import type React from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { AnimatePresence, motion } from "framer-motion"
 import { useMemo, useState } from "react"
 import Navbar from "../components/layout/Navbar"
 import fondoLogin from "/fondo_wallet.webp"
-import { EyeIcon, EyeOffIcon } from "lucide-react"
+import { EyeIcon, EyeOffIcon, Loader2 } from "lucide-react"
+import { authService } from "../service/auth.service"
+import { ExceptionAlert } from "../utils/exceptions/ExceptionAlert"
+import { AxiosError } from "axios"
 
 function ValidationItem({ text, valid }: { text: string; valid: boolean }) {
   return (
@@ -57,10 +60,13 @@ export default function LoginPage() {
   peer-[:not(:placeholder-shown)]:font-medium
   peer-[:not(:placeholder-shown)]:text-[var(--color-foreground)]
   `;
-  const [email, setEmail] = useState("")
+  const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [showPasswordChecks, setShowPasswordChecks] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [apiError, setApiError] = useState("")
+  const navigate = useNavigate()
 
   const validationChecks = useMemo(() => {
     return [
@@ -72,9 +78,46 @@ export default function LoginPage() {
     ]
   }, [password])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Login:", { email, password })
+    setApiError("")
+    
+    const allChecksValid = validationChecks.every(check => check.valid);
+    if (!allChecksValid) {
+      ExceptionAlert.warning("La contraseña no cumple con los requisitos de seguridad.");
+      setShowPasswordChecks(true);
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await authService.login({
+        username: username,
+        password: password
+      });
+
+      const token = response.token; 
+      
+      localStorage.setItem("authToken", token);
+      
+      ExceptionAlert.success("¡Bienvenido de nuevo!");
+      
+      navigate("/dashboard");
+
+    } catch (error) {
+      let errorMessage = "Credenciales inválidas o error de red.";
+      if (error instanceof AxiosError && error.response) {
+        errorMessage = error.response.data.message || error.response.data || errorMessage;
+      }
+      
+      console.error("Error en el inicio de sesión:", error);
+      ExceptionAlert.error(errorMessage);
+      setApiError(errorMessage);
+      
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -113,10 +156,11 @@ export default function LoginPage() {
                   </div>
                   
                   <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="username"
+                    name="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     className={classInputForm}
                     placeholder=" "
                     required
@@ -127,7 +171,7 @@ export default function LoginPage() {
                     htmlFor="email"
                     className={classLabelForm}
                   >
-                    Correo Electrónico
+                    Nombre de Usuario
                   </label>
                 </div>
 
@@ -172,12 +216,27 @@ export default function LoginPage() {
                   </a>
                 </div>
 
+                {/* 9. BOTÓN DE SUBMIT CON LOADER */}
                 <button
                   type="submit"
-                  className="w-full cursor-pointer bg-[var(--color-button)] text-primary-foreground py-3.5 rounded-xl font-bold text-lg hover:bg-primary/90 transition-all hover:scale-[1.02] shadow-xl"
+                  className={`w-full cursor-pointer bg-[var(--color-primary)] text-[var(--color-primary-foreground)] py-3.5 rounded-xl font-bold text-lg transition-all shadow-xl flex items-center justify-center
+                    ${isLoading ? "opacity-70 cursor-not-allowed" : "hover:bg-[var(--color-primary)]/90 hover:scale-[1.02]"}
+                  `}
+                  disabled={isLoading}
                 >
-                  Iniciar Sesión
+                  {isLoading ? (
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  ) : (
+                    "Iniciar Sesión"
+                  )}
                 </button>
+
+                {/* Mensaje de Error de la API */}
+                {apiError && (
+                  <div className="text-red-400 text-sm font-medium text-center -mt-2">
+                    {apiError}
+                  </div>
+                )}
               </form>
 
               <div className="mt-8 text-center">

@@ -6,6 +6,7 @@ import RegisterPage from "../pages/Register-page"
 import FeaturesPage from "../pages/Features-page"
 import SecurityPage from "../pages/Security-page"
 import AboutPage from "../pages/About-page"
+import VerifyPage from "../pages/VerifyPage"
 
 export const AppRouter = () => {
   return (
@@ -13,6 +14,7 @@ export const AppRouter = () => {
       <Route path="/" element={<LayoutClient />}>
         <Route index element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/verificar" element={<VerifyPage  />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/features" element={<FeaturesPage />} />
         <Route path="/security" element={<SecurityPage />} />

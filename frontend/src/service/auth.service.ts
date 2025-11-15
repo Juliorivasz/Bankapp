@@ -32,6 +32,20 @@ const validarUsuario = async (username: string) => {
   return response.data;
 };
 
+const verificarCuenta = async (token: string) => {
+  const response = await apiClient.get('auth/verificar', {
+    params: { token: token }
+  });
+  return response.data;
+};
+
+const reenviarEmailVerificacion = async (email: string) => {
+  const response = await apiClient.post('/auth/reenviar/verificacion', {
+    email: email
+  });
+  return response.data;
+}
+
 const fetchPaises = async (): Promise<ICountry[]> => {
   const response = await apiClient.get('/paises/');
   return response.data;
@@ -41,5 +55,7 @@ export const authService = {
   login,
   registroRapido,
   validarUsuario,
-  fetchPaises
+  fetchPaises,
+  verificarCuenta,
+  reenviarEmailVerificacion
 };

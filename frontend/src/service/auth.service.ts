@@ -26,7 +26,7 @@ const registroRapido = async (registroDTO: RegistroRapidoDTO) => {
 };
 
 const validarUsuario = async (username: string) => {
-  const response = await apiClient.get('/auth/usuario/validar', {
+  const response = await apiClient.get('/auth/validar/usuario', {
     params: { usuario: username }
   });
   return response.data;

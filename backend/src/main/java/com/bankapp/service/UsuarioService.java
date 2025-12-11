@@ -199,6 +199,7 @@ public class UsuarioService {
 
             return monedasPrincipalesFlux
                     .distinct(PaisMoneda::getIdMoneda)
+                    .take(1) // REGLA DE NEGOCIO: Solo crear 1 wallet principal (Moneda Nacional)
                     .flatMap(paisMoneda -> walletService.crearWalletInicial(usuarioGuardado.getIdUsuario(), paisMoneda.getIdMoneda()))
                     .collectList()
                     .thenReturn(usuarioGuardado);
@@ -280,5 +281,9 @@ public class UsuarioService {
         return usuarioRepository.findByNombreUsuario(username)
                 .switchIfEmpty(Mono.error(new RuntimeException("Usuario no encontrado.")))
                 .map(Usuario::getIdUsuario);
+    }
+    
+    public Mono<Usuario> obtenerUsuarioPorId(Long idUsuario) {
+        return usuarioRepository.findById(idUsuario);
     }
 }

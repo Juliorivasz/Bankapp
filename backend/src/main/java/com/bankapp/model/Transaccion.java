@@ -16,9 +16,12 @@ public class Transaccion {
     @Id
     @Transient
     private Long idTransaccion;
+    private Long idWallet;
     private String numeroCuenta;
     private BigDecimal monto;
+    private String tipoTransaccion;
     private EstadoTransaccion estadoTransaccion;
     private LocalDateTime fechaTransaccion;
     private String descripcion;
+    private String cuentaDestino;
 }

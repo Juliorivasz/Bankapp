@@ -49,7 +49,7 @@ public class AuthController {
      * Endpoint público para la verificación de usuario.
      * Ruta: GET /api/auth/usuario/validar?usuario=
      */
-    @GetMapping("/usuario/validar")
+    @GetMapping("/validar/usuario")
     @ResponseStatus(HttpStatus.OK)
     public Mono<String> validarUsuario(@RequestParam("usuario") String usuario) {
 
@@ -99,27 +99,72 @@ public class AuthController {
         return userDetailsService.findByUsername(loginDTO.getUsername())
                 .flatMap(userDetails -> {
 
-                    if (passwordEncoder.matches(loginDTO.getPassword(), userDetails.getPassword())) {
-
-                        String token = jwtUtil.generateToken(userDetails);
-                        JwtResponseDTO response = new JwtResponseDTO();
-                        response.setToken(token);
-
-                        return Mono.just(response);
-
-                    } else {
-                        // Si la contraseña NO coincide, lanza 401
-                        return Mono.error(new AuthenticationException("Credenciales inválidas.") {});
+                    // 2. Verificar contraseña
+                    if (!passwordEncoder.matches(loginDTO.getPassword(), userDetails.getPassword())) {
+                        // Contraseña incorrecta - devolver 401
+                        return Mono.error(new ResponseStatusException(
+                                HttpStatus.UNAUTHORIZED,
+                                "Usuario o contraseña incorrectos."));
                     }
+
+                    // 3. Verificar estado de la cuenta
+                    if (!userDetails.isEnabled()) {
+                        // Obtener el usuario real para verificar el estado específico
+                        return usuarioService.obtenerPorNombreUsuario(loginDTO.getUsername())
+                                .flatMap(usuario -> {
+                                    String estadoCuenta = usuario.getEstadoCuenta();
+
+                                    // Diferenciar entre diferentes estados de cuenta
+                                    if ("BLOQUEADO".equals(estadoCuenta)) {
+                                        return Mono.error(new ResponseStatusException(
+                                                HttpStatus.FORBIDDEN,
+                                                "Tu cuenta está bloqueada. Por favor contacta a soporte."));
+                                    } else if ("PENDIENTE_ACTIVACION".equals(estadoCuenta)) {
+                                        return Mono.error(new ResponseStatusException(
+                                                HttpStatus.LOCKED,
+                                                "Tu cuenta está pendiente de activación. Por favor revisa tu correo electrónico."));
+                                    } else if ("PENDIENTE_PERFIL".equals(estadoCuenta)) {
+                                        return Mono.error(new ResponseStatusException(
+                                                HttpStatus.LOCKED,
+                                                "Por favor completa tu perfil para activar tu cuenta."));
+                                    } else if ("SUSPENDIDO".equals(estadoCuenta)) {
+                                        return Mono.error(new ResponseStatusException(
+                                                HttpStatus.FORBIDDEN,
+                                                "Tu cuenta ha sido suspendida. Contacta a soporte para más información."));
+                                    } else {
+                                        return Mono.error(new ResponseStatusException(
+                                                HttpStatus.FORBIDDEN,
+                                                "Tu cuenta no está activa."));
+                                    }
+                                });
+                    }
+
+                    // 4. Login exitoso - generar token
+                    String token = jwtUtil.generateToken(userDetails);
+                    JwtResponseDTO response = new JwtResponseDTO();
+                    response.setToken(token);
+
+                    return Mono.just(response);
                 })
                 .onErrorResume(e -> {
-                    // Manejo centralizado de errores de login
-                    // AuthenticationException, UsernameNotFoundException, etc. se convierten a 401
-                    if (e instanceof AuthenticationException || e instanceof RuntimeException && e.getMessage().contains("no encontrado")) {
-                        return Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales inválidas o usuario no encontrado."));
+                    // Manejo centralizado de errores
+                    if (e instanceof ResponseStatusException) {
+                        // Ya es una ResponseStatusException con el código y mensaje correcto
+                        return Mono.error(e);
                     }
-                    // Otros errores se propagan
-                    return Mono.error(e);
+
+                    // Usuario no encontrado u otros errores de autenticación
+                    if (e instanceof AuthenticationException ||
+                            e.getMessage() != null && e.getMessage().contains("no encontrado")) {
+                        return Mono.error(new ResponseStatusException(
+                                HttpStatus.UNAUTHORIZED,
+                                "Usuario o contraseña incorrectos."));
+                    }
+
+                    // Error inesperado
+                    return Mono.error(new ResponseStatusException(
+                            HttpStatus.INTERNAL_SERVER_ERROR,
+                            "Error al procesar la solicitud de login."));
                 });
     }
 }

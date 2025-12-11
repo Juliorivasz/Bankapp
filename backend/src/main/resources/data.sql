@@ -7,7 +7,7 @@ INSERT INTO rol (id_rol, nombre_rol) VALUES (2, 'CLIENTE') ON DUPLICATE KEY UPDA
 --------------------------------------------
 -- 2. TIPOS DE MONEDA (Una sentencia por moneda)
 --------------------------------------------
-INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (1, 'Dólar Estadounidense', 'USD') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
+INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (1, 'Dolar Estadounidense', 'USD') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
 INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (2, 'Bitcoin', 'BTC') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
 INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (3, 'Peso Argentino', 'ARS') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
 INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (4, 'Peso Mexicano', 'MXN') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);

@@ -13,6 +13,7 @@ import type { ICountry } from "../types/auth/Country"
 import { authService } from "../service/auth.service";
 import { AxiosError } from "axios"
 import { ExceptionAlert } from "../utils/exceptions/ExceptionAlert"
+import { ChevronDownIcon, EmailIcon, GlobeIcon, LockIcon, UserIcon } from "../components/icons/IconsRoutes"
 
 function ValidationItem({ text, valid }: { text: string; valid: boolean }) {
   return (
@@ -278,7 +279,7 @@ export default function RegisterPage() {
   const stepTitles = ["Tu País", "Tus Datos"]
 
   return (
-    <div className="min-h-screen bg-[var(--color-background)]">
+    <div className="min-h-screen contents">
       <Navbar />
 
       <div className="pt-20 pb-20 px-6 lg:px-8">
@@ -544,7 +545,7 @@ export default function RegisterPage() {
                         {currentStep === 1 ? "Bienvenido" : "Casi Listo"}
                       </h1>
                       <p className="text-xl text-blue-100 drop-shadow-md">
-                        {currentStep === 1 ? "Selecciona tu país para configurar tu cuenta." : "Solo necesitamos tus datos de acceso."}
+                        {currentStep === 1 ? "Selecciona tu país para iniciar el registro" : "Solo necesitamos tus datos de acceso."}
                       </p>
                     </motion.div>
                   )}
@@ -560,41 +561,4 @@ export default function RegisterPage() {
       </div>
     </div>
   )
-}
-
-// --- Componentes de Iconos ---
-function UserIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A1.75 1.75 0 0118 21.75H6.75a1.75 1.75 0 01-1.249-1.632z" />
-    </svg>
-  );
-}
-function EmailIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-    </svg>
-  );
-}
-function LockIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 00-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-    </svg>
-  );
-}
-function GlobeIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c.24 0 .468.02.69.055M12 21c-.24 0-.468.02-.69.055M12 3a9.004 9.004 0 00-8.716 6.747M12 3a9.004 9.004 0 018.716 6.747M12 3c.24 0 .468-.02.69-.055M12 3c-.24 0-.468-.02-.69-.055M3.29 8.7a9.006 9.006 0 0017.42 0M3.29 8.7c.03.181.066.357.106.528M3.29 8.7c-.03-.181-.066-.357-.106-.528M20.71 8.7a9.006 9.006 0 01-17.42 0M20.71 8.7c-.03.181-.066.357-.106.528M20.71 8.7c.03-.181.066.357.106-.528M12 15a3 3 0 100-6 3 3 0 000 6z" />
-    </svg>
-  );
-}
-function ChevronDownIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-    </svg>
-  );
 }

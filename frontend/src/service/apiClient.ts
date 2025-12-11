@@ -20,4 +20,19 @@ apiClient.interceptors.request.use(
   }
 );
 
+// Manejar 401 (token expirado en el futuro)
+apiClient.interceptors.response.use(
+  response => response,
+  error => {
+
+    if (error.response?.status === 401) {
+      console.warn("Token expirado o inválido. Cerrando sesión...");
+      localStorage.removeItem("authToken");
+      window.location.href = "/login";
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export default apiClient;

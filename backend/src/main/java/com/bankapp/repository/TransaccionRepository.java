@@ -20,4 +20,15 @@ public interface TransaccionRepository extends ReactiveCrudRepository<Transaccio
     Mono<BigDecimal> sumMontoByEstadoTransaccion(String estado);
 
     Flux<Transaccion> findByNumeroCuenta(String numeroCuenta);
+
+    @Query("SELECT * FROM transaccion WHERE numero_cuenta = :numeroCuenta AND fecha_transaccion >= :desde ORDER BY fecha_transaccion ASC")
+    Flux<Transaccion> findByNumeroCuentaAndFechaTransaccionAfterOrderByFechaTransaccionAsc(String numeroCuenta,
+            java.time.LocalDateTime desde);
+
+    Flux<Transaccion> findByNumeroCuentaInAndFechaTransaccionAfterOrderByFechaTransaccionDesc(java.util.List<String> numerosCuenta, java.time.LocalDateTime desde);
+    
+    Flux<Transaccion> findByNumeroCuentaInAndFechaTransaccionAfterOrderByFechaTransaccionAsc(java.util.List<String> numerosCuenta, java.time.LocalDateTime desde);
+
+    @Query("SELECT DISTINCT cuenta_destino FROM transaccion WHERE numero_cuenta IN (:numerosCuenta) AND tipo_transaccion = 'TRANSFERENCIA_ENVIADA' AND cuenta_destino IS NOT NULL LIMIT 20")
+    Flux<String> findDistinctCuentaDestinoByNumeroCuentaIn(java.util.List<String> numerosCuenta);
 }

@@ -125,4 +125,16 @@ public class WalletService {
             return crearWalletInicial(idUsuario, idMoneda);
         });
     }
+
+    // --------------------------------------------------------------------------------
+    // 3. Métodos Auxiliares de Búsqueda (Exponer Repositorio)
+    // --------------------------------------------------------------------------------
+
+    public Mono<Wallet> buscarPorNumeroCuenta(String numeroCuenta) {
+        return walletRepository.findByNumeroCuenta(numeroCuenta);
+    }
+
+    public Mono<Wallet> buscarPorUsuarioYMoneda(Long idUsuario, Long idMoneda) {
+        return walletRepository.findByIdUsuarioAndIdMoneda(idUsuario, idMoneda);
+    }
 }

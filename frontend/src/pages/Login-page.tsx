@@ -2,34 +2,16 @@
 
 import type React from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { AnimatePresence, motion } from "framer-motion"
-import { useMemo, useState } from "react"
+import { motion } from "framer-motion"
+import { useState } from "react"
 import Navbar from "../components/layout/Navbar"
 import fondoLogin from "/fondo_wallet.webp"
 import { EyeIcon, EyeOffIcon, Loader2 } from "lucide-react"
 import { authService } from "../service/auth.service"
 import { ExceptionAlert } from "../utils/exceptions/ExceptionAlert"
 import { AxiosError } from "axios"
-
-function ValidationItem({ text, valid }: { text: string; valid: boolean }) {
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      className={`flex items-center gap-2 text-sm ${
-        valid ? "text-green-400" : "text-[var(--color-muted-foreground)]"
-      }`}
-    >
-      <div
-        className={`w-2 h-2 rounded-full ${
-          valid ? "bg-green-500" : "bg-red-500"
-        }`}
-      />
-      {text}
-    </motion.div>
-  )
-}
+import { EmailIcon, LockIcon } from "../components/icons/IconsRoutes"
+import { useAuthStore } from "../store/auth.store"
 
 export default function LoginPage() {
   const classInputForm = `peer 
@@ -60,32 +42,22 @@ export default function LoginPage() {
   peer-[:not(:placeholder-shown)]:font-medium
   peer-[:not(:placeholder-shown)]:text-[var(--color-foreground)]
   `;
+  
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [showPasswordChecks, setShowPasswordChecks] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [apiError, setApiError] = useState("")
   const navigate = useNavigate()
-
-  const validationChecks = useMemo(() => {
-    return [
-      { text: "Mínimo 6 caracteres", valid: password.length >= 6 },
-      { text: "Una mayúscula (A-Z)", valid: /[A-Z]/.test(password) },
-      { text: "Una minúscula (a-z)", valid: /[a-z]/.test(password) },
-      { text: "Un número (0-9)", valid: /[0-9]/.test(password) },
-      { text: "Un carácter especial (!@#...)", valid: /[^A-Za-z0-9]/.test(password) },
-    ]
-  }, [password])
+  const { login: loginToStore } = useAuthStore()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setApiError("")
     
-    const allChecksValid = validationChecks.every(check => check.valid);
-    if (!allChecksValid) {
-      ExceptionAlert.warning("La contraseña no cumple con los requisitos de seguridad.");
-      setShowPasswordChecks(true);
+    // Validación básica
+    if (!username.trim() || !password.trim()) {
+      ExceptionAlert.warning("Por favor completa todos los campos.");
       return;
     }
 
@@ -99,16 +71,36 @@ export default function LoginPage() {
 
       const token = response.token; 
       
-      localStorage.setItem("authToken", token);
+      // CRÍTICO: Actualizar el store de Zustand con el token
+      loginToStore(token);
       
       ExceptionAlert.success("¡Bienvenido de nuevo!");
       
+      // El navigate se ejecutará después de que el store se actualice
       navigate("/dashboard");
+      
 
     } catch (error) {
-      let errorMessage = "Credenciales inválidas o error de red.";
+      let errorMessage = "Error al iniciar sesión. Por favor intenta nuevamente.";
+      
       if (error instanceof AxiosError && error.response) {
-        errorMessage = error.response.data.message || error.response.data || errorMessage;
+        const status = error.response.status;
+        const responseMessage = error.response.data?.message || error.response.data;
+        
+        // Mensajes específicos según el código de estado
+        switch (status) {
+          case 401:
+            errorMessage = "Usuario o contraseña incorrectos.";
+            break;
+          case 403:
+            errorMessage = responseMessage || "Tu cuenta está bloqueada. Contacta a soporte.";
+            break;
+          case 423:
+            errorMessage = responseMessage || "Tu cuenta está pendiente de activación.";
+            break;
+          default:
+            errorMessage = responseMessage || errorMessage;
+        }
       }
       
       console.error("Error en el inicio de sesión:", error);
@@ -121,10 +113,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen contents">
       <Navbar />
 
-      <div className="pt-20 pb-20 px-6 lg:px-8">
+      <div className="pt-25 pb-25 px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -148,7 +140,7 @@ export default function LoginPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* --- CAMPO DE CORREO ELECTRÓNICO --- */}
+                {/* --- CAMPO DE USUARIO --- */}
                 <div className="relative pt-7 mb-3">
                   
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10 top-7">
@@ -168,7 +160,7 @@ export default function LoginPage() {
 
                   {/* Label Flotante */}
                   <label
-                    htmlFor="email"
+                    htmlFor="username"
                     className={classLabelForm}
                   >
                     Nombre de Usuario
@@ -185,14 +177,13 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    onFocus={() => setShowPasswordChecks(true)}
                     className={`${classInputForm} pr-12`}
                     placeholder=" "
                     required
                   />
                   <label htmlFor="password" className={classLabelForm}>Contraseña</label>
                   
-                  {/* 4. BOTÓN DE MOSTRAR/OCULTAR */}
+                  {/* BOTÓN DE MOSTRAR/OCULTAR */}
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -216,7 +207,7 @@ export default function LoginPage() {
                   </a>
                 </div>
 
-                {/* 9. BOTÓN DE SUBMIT CON LOADER */}
+                {/* BOTÓN DE SUBMIT CON LOADER */}
                 <button
                   type="submit"
                   className={`w-full cursor-pointer bg-[var(--color-primary)] text-[var(--color-primary-foreground)] py-3.5 rounded-xl font-bold text-lg transition-all shadow-xl flex items-center justify-center
@@ -249,35 +240,9 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* --- Columna Derecha (La otra mitad de la imagen de fondo) --- */}
+            {/* --- Columna Derecha (Imagen de fondo con overlay) --- */}
             <div className="hidden lg:block lg:w-1/2 relative">
-              <div className="relative z-10 pt-10 px-12">
-                <AnimatePresence mode="wait">
-                  {showPasswordChecks && (
-                    // Si 'showPasswordChecks' es true, muestra la lista
-                    <motion.div
-                      key="checks"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.4, ease: "easeOut" }}
-                      className="bg-black/40 backdrop-blur-md p-6 rounded-xl border border-white/10 shadow-2xl"
-                    >
-                      <h3 className="text-lg font-semibold text-white mb-4">Requisitos de Contraseña</h3>
-                      <div className="space-y-3">
-                        {validationChecks.map((check, index) => (
-                          <ValidationItem
-                            key={index}
-                            text={check.text}
-                            valid={check.valid}
-                          />
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-                <div className="
+              <div className="
                   absolute inset-0 w-full h-full 
                   bg-gradient-to-bl 
                   from-blue-950/70 
@@ -295,22 +260,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  )
-}
-
-// --- Componentes de Iconos ---
-function EmailIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-    </svg>
-  )
-}
-
-function LockIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 00-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-    </svg>
   )
 }

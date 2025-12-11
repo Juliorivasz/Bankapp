@@ -27,24 +27,27 @@ public class SecurityUserDetailsService implements ReactiveUserDetailsService {
         return usuarioRepository.findByNombreUsuario(username)
                 .switchIfEmpty(Mono.error(new UsernameNotFoundException("Usuario no encontrado: " + username)))
                 .flatMap(usuario -> {
-                    if (usuario.getEstadoCuenta().equals("BLOQUEADO")) {
-                        return Mono.error(new UsernameNotFoundException("Cuenta bloqueada."));
-                    }
 
                     return rolRepository.findById(usuario.getIdRol())
-                            .switchIfEmpty(Mono.error(new RuntimeException("Rol no asignado o no encontrado para el usuario.")))
+                            .switchIfEmpty(Mono
+                                    .error(new RuntimeException("Rol no asignado o no encontrado para el usuario.")))
                             .map(rol -> {
 
                                 String nombreRol = rol.getNombreRol().toUpperCase();
                                 List<GrantedAuthority> authorities = Collections.singletonList(
-                                        new SimpleGrantedAuthority("ROLE_" + nombreRol)
-                                );
+                                        new SimpleGrantedAuthority("ROLE_" + nombreRol));
+
+                                // Determinar si la cuenta está habilitada basándose en el estado
+                                boolean isEnabled = "ACTIVA".equals(usuario.getEstadoCuenta());
 
                                 return new org.springframework.security.core.userdetails.User(
                                         usuario.getNombreUsuario(),
                                         usuario.getPassword(),
-                                        authorities
-                                );
+                                        isEnabled, // enabled
+                                        true, // accountNonExpired
+                                        true, // credentialsNonExpired
+                                        true, // accountNonLocked
+                                        authorities);
                             });
                 });
     }

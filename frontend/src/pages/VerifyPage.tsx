@@ -88,7 +88,11 @@ export default function VerifyPage() {
       await authService.reenviarEmailVerificacion(emailToResend)
       ExceptionAlert.success("¡Correo reenviado!, Revisa tu bandeja de entrada nuevamente.")
     } catch (error) {
-      ExceptionAlert.error("Error al reenviar, Intenta registrarte nuevamente o contacta soporte.")
+      let errorMessage = "No se pudo conectar al servidor."; 
+      if (error instanceof AxiosError && error.response) {
+        errorMessage = error.response.data.message || errorMessage;
+      }
+      ExceptionAlert.error(errorMessage)
       console.error("Error reenviando email de verificación:", error)
     } finally {
       setIsResending(false)

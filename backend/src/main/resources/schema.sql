@@ -68,12 +68,16 @@ CREATE TABLE IF NOT EXISTS wallet (
 
 CREATE TABLE IF NOT EXISTS transaccion (
     id_transaccion BIGINT PRIMARY KEY AUTO_INCREMENT,
+    id_wallet BIGINT NOT NULL,
     numero_cuenta VARCHAR(50) NOT NULL,
     monto DECIMAL(18, 8) NOT NULL,
+    tipo_transaccion VARCHAR(50) NOT NULL,
     estado_transaccion VARCHAR(50) NOT NULL,
     fecha_transaccion TIMESTAMP NOT NULL,
     descripcion VARCHAR(255),
-    INDEX idx_numero_cuenta (numero_cuenta)
+    cuenta_destino VARCHAR(50),
+    INDEX idx_numero_cuenta (numero_cuenta),
+    FOREIGN KEY (id_wallet) REFERENCES wallet(id_wallet)
 );
 
 CREATE TABLE IF NOT EXISTS soporte (

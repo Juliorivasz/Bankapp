@@ -3,7 +3,6 @@ package com.bankapp.config;
 import io.swagger.v3.oas.models.Components; // NUEVO
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.security.SecurityRequirement; // NUEVO
 import io.swagger.v3.oas.models.security.SecurityScheme; // NUEVO
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class OpenApiConfig {
 
-    private static final String SCHEME_NAME = "BearerAuth"; // Nombre de referencia interna
+    private static final String SCHEME_NAME = "BearerAuth";
 
     @Bean
     public OpenAPI customOpenAPI() {

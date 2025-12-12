@@ -91,15 +91,15 @@ public class DashboardService {
     return transaccionRepository
         .findByNumeroCuentaInAndFechaTransaccionAfterOrderByFechaTransaccionDesc(numerosCuenta, fechaInicio)
         .map(t -> {
-          String tipo = inferirTipo(t);
           return new TransaccionInfoDTO(
               t.getIdTransaccion(),
               t.getFechaTransaccion().toString(),
               t.getDescripcion(),
               t.getMonto(),
-              tipo,
+              t.getTipoTransaccion() != null ? t.getTipoTransaccion() : inferirTipo(t),
               BigDecimal.ZERO, 
-              t.getEstadoTransaccion().toString());
+              t.getEstadoTransaccion().toString(),
+              t.getNumeroCuenta());
         });
   }
 

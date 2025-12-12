@@ -17,4 +17,5 @@ public class TransaccionInfoDTO {
   private String tipo; // DEPOSITO, RETIRO, TRANSFERENCIA
   private BigDecimal balanceAcumulado;
   private String estado;
+  private String numeroCuenta; // Para vincular con la Wallet
 }

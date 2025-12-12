@@ -13,25 +13,23 @@ import { BalancePanel } from '../../components/client/BalancePanel';
 import { MovementsChart } from '../../components/client/MovementsChart';
 import { TransactionsTable } from '../../components/client/TransactionsTable';
 import { dashboardService } from '../../service/dashboard.service';
-
-
-const getFlag = (code: string) => {
-  switch (code) {
-    case 'ARS': return '🇦🇷';
-    case 'USD': return '🇺🇸';
-    case 'EUR': return '🇪🇺';
-    case 'BRL': return '🇧🇷';
-    case 'BTC': return '₿';
-    default: return '💰';
-  }
-};
+import { useCurrencyStore } from '../../store/currency.store';
+import { exchangeService } from '../../service/exchange.service';
+import { getFlag } from '../../utils/currencyUtils';
 
 // --- COMPONENTE PRINCIPAL DEL DASHBOARD ---
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [isBalanceHidden, setIsBalanceHidden] = useState(false);
   
+  // Estado para la conversión visual (Selector "Valor total aprox")
+  // Por defecto USD, pero el usuario puede cambiarlo para ver su patrimonio en otra moneda
+  const { baseCurrency, setBaseCurrency } = useCurrencyStore();
+  
+  const [isBalanceHidden, setIsBalanceHidden] = useState(false);
+  const [rates, setRates] = useState<Record<string, number> | null>(null);
+  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
+
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: addDays(new Date(), -30),
     to: new Date(),
@@ -41,11 +39,19 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 1. Fetch de tasas de cambio
+  useEffect(() => {
+    const fetchRates = async () => {
+        const fetchedRates = await exchangeService.getRates();
+        setRates(fetchedRates);
+    };
+    fetchRates();
+  }, []);
+
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
         setLoading(true);
-        // Pasar las fechas al servicio (si existen)
         const from = dateRange?.from;
         const to = dateRange?.to;
         
@@ -60,10 +66,9 @@ export default function DashboardPage() {
     };
 
     fetchDashboard();
-  }, [dateRange]); // Recargar cuando cambie el rango de fechas
+  }, [dateRange]);
 
-  // Mapear datos del backend a formatos del frontend
-
+  // Mapear Wallets
   const wallets: Wallet[] = useMemo(() => {
     if (!dashboardData) return [];
     return dashboardData.wallets.map((w: WalletInfoDTO) => ({
@@ -77,29 +82,111 @@ export default function DashboardPage() {
     }));
   }, [dashboardData]);
 
+  // Inicializar selectedWalletId cuando cargan las wallets
+  useEffect(() => {
+      if (wallets.length > 0 && !selectedWalletId) {
+          setSelectedWalletId(wallets[0].id);
+      }
+  }, [wallets, selectedWalletId]);
+
+  const selectedWallet = useMemo(() => {
+      return wallets.find(w => w.id === selectedWalletId) || wallets[0];
+  }, [wallets, selectedWalletId]);
+
+
+  // 2. Mapeo de Transacciones FILTRADAS por Wallet Seleccionada
   const recentTransactions: Transaction[] = useMemo(() => {
-    if (!dashboardData) return [];
-    return dashboardData.transaccionesRecientes.map((t: TransaccionInfoDTO) => ({
-      id: t.idTransaccion,
-      type: mapTransactionType(t.tipo),
-      amount: t.monto,
-      currency: "ARS", // Idealmente vendría del backend
-      name: t.descripcion || "Transacción",
-      date: t.fecha, 
-      description: t.descripcion
-    }));
-  }, [dashboardData]);
+    if (!dashboardData || !rates || !selectedWallet) return [];
+    
+    // Filtramos solo las transacciones de esta wallet
+    const walletTransactions = dashboardData.transaccionesRecientes.filter(t => 
+        t.numeroCuenta === selectedWallet.accountNumber
+    );
+
+    return walletTransactions.map((t: TransaccionInfoDTO) => {
+        // Como estamos filtrando por wallet, el monto YA ES en la moneda de la wallet.
+        // Pero el usuario puede querer ver todo en su "convertidor" (baseCurrency).
+        // El requerimiento dice: "debe mostrarse segun la wallet elegida".
+        // Entonces mostramos en la moneda de la WALLET, no en la BaseCurrency del convertidor inferior.
+        
+        // WAIT: El usuario dijo "el que dice valor total aprox es a cual conversion quiero que me muestre... al cambiar la wallet se debe poder actualizar globalmente"
+        // PERO TAMBIEN: "los graficos y transacciones debe mostrarse segun la wallet elegida".
+        // INTERPRETACION:
+        // - Lista de transacciones: Moneda de la Wallet.
+        // - Gráfico: Moneda de la Wallet.
+        // - Total Global (abajo): Convertido a baseCurrency.
+
+        return {
+            id: t.idTransaccion,
+            type: mapTransactionType(t.tipo),
+            amount: t.monto, // Monto original de la transacción (moneda de la wallet)
+            currency: selectedWallet.code, // Moneda de la wallet
+            name: t.descripcion || "Transacción",
+            date: t.fecha, 
+            description: t.descripcion
+        };
+    });
+  }, [dashboardData, rates, selectedWallet]); // Removing baseCurrency dep if not converting transactions to it
   
-  // No necesitamos 'chartData' transformado localmente, usamos 'balanceDiario' directo del backend.
+  // 3. Recálculo del Gráfico (Balance Diario) para la Wallet Seleccionada
+  const chartData = useMemo(() => {
+      if (!dashboardData?.transaccionesRecientes || !selectedWallet) return [];
+
+      // Filtramos transacciones
+      const walletTransactions = dashboardData.transaccionesRecientes.filter(t => 
+        t.numeroCuenta === selectedWallet.accountNumber
+      );
+
+      // Reconstruir lógica de agrupación por día (frontend side)
+      const map: Record<string, { fecha: string, ingresos: number, egresos: number }> = {};
+
+      walletTransactions.forEach(t => {
+          const fechaDia = t.fecha.substring(0, 10);
+          if (!map[fechaDia]) {
+              map[fechaDia] = { fecha: fechaDia, ingresos: 0, egresos: 0 };
+          }
+          
+          if (mapTransactionType(t.tipo) === 'receive') {
+              map[fechaDia].ingresos += t.monto;
+          } else {
+              map[fechaDia].egresos += t.monto;
+          }
+      });
+
+      // Convertir a array y ordenar
+      const sortedData = Object.values(map).sort((a, b) => a.fecha.localeCompare(b.fecha));
+      
+      // Mapear al formato del gráfico
+      return sortedData.map(item => ({
+         fecha: item.fecha, // Required by BalanceDiarioDTO
+         date: item.fecha, 
+         fullDate: item.fecha, 
+         ingresos: item.ingresos,
+         egresos: item.egresos,
+         balance: 0, 
+         type: 'mixed',
+         amount: 0,
+         fromTo: ''
+      }));
+  }, [dashboardData, selectedWallet]);
 
   function mapTransactionType(type: string): 'send' | 'receive' {
     if (type === 'DEPOSITO' || type === 'TRANSFERENCIA_RECIBIDA') return 'receive';
     return 'send';
   }
 
-  // Usar balance total del backend, o calcularlo si es necesario (el backend ya manda suma simple)
-  // Nota: convertir a número si viene como string
-  const totalBalance = dashboardData ? dashboardData.balanceTotal : 0;
+  // CALCULO DEL BALANCE TOTAL DINÁMICO (Panel Inferior)
+  const totalBalance = useMemo(() => {
+      // Ahora el valor total aproximado refleja SOLO la wallet seleccionada convertida a la moneda base.
+      if (!selectedWallet || !rates) return 0;
+      
+      return exchangeService.convert(
+          selectedWallet.balance, 
+          selectedWallet.code, 
+          baseCurrency, 
+          rates
+      );
+  }, [selectedWallet, rates, baseCurrency]);
 
   if (loading) {
     return (
@@ -160,13 +247,17 @@ export default function DashboardPage() {
             totalBalance={totalBalance}
             isHidden={isBalanceHidden}
             onToggleVisibility={() => setIsBalanceHidden(!isBalanceHidden)}
+            baseCurrency={baseCurrency}
+            onCurrencyChange={setBaseCurrency}
+            selectedWallet={selectedWallet}
+            onWalletChange={(w) => setSelectedWalletId(w.id)}
           />
         </div>
 
         {/* Panel de Gráfico */}
           <div className="animate-fadeIn" style={{ animationDelay: '0.2s' }}>
             <MovementsChart 
-              data={dashboardData?.balanceDiario || []} 
+              data={chartData} 
               dateRange={dateRange} 
               setDateRange={setDateRange} 
             />

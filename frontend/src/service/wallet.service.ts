@@ -1,6 +1,7 @@
 import apiClient from './apiClient';
 import type { WalletInfoDTO } from '../types/client/dashboard.types';
 import type { Wallet } from '../types/client/dashboard.types';
+import { getFlag } from '../utils/currencyUtils';
 
 export const walletService = {
   getWallets: async (): Promise<WalletInfoDTO[]> => {
@@ -38,15 +39,3 @@ export const walletService = {
       };
   }
 };
-
-function getFlag(code: string) {
-    switch (code) {
-        case 'ARS': return '🇦🇷';
-        case 'USD': return '🇺🇸';
-        case 'EUR': return '🇪🇺';
-        case 'BRL': return '🇧🇷';
-        case 'BTC': return '₿';
-        case 'ETH': return 'Ξ';
-        default: return '💰';
-    }
-}

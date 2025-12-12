@@ -9,14 +9,21 @@ export const BalancePanel: React.FC<BalancePanelProps> = ({
   wallets, 
   totalBalance, 
   isHidden, 
-  onToggleVisibility 
+  onToggleVisibility,
+  baseCurrency,
+  onCurrencyChange,
+  selectedWallet,
+  onWalletChange
 }) => {
-  const [selectedWallet, setSelectedWallet] = useState<Wallet>(wallets[0]);
   const [isOpen, setIsOpen] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
 
-  const selectWallet = (wallet: Wallet) => {
-    setSelectedWallet(wallet);
+  // Currency Selector State
+  const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
+  const CURRENCIES = ['USD', 'ARS', 'BRL', 'MXN', 'CLP', 'COP', 'PEN', 'EUR'];
+
+  const handleSelectWallet = (wallet: Wallet) => {
+    onWalletChange(wallet);
     setIsOpen(false);
   };
 
@@ -32,24 +39,24 @@ export const BalancePanel: React.FC<BalancePanelProps> = ({
               onClick={() => setIsOpen(!isOpen)}
               className="flex items-center gap-2 text-lg font-medium text-white/80 hover:text-white transition-colors"
             >
-              <span className="text-2xl">{selectedWallet.flag}</span>
-              {selectedWallet.currency} ({selectedWallet.code})
+              <span className="text-2xl">{selectedWallet?.flag || '💰'}</span>
+              {selectedWallet?.currency || 'Wallet'} ({selectedWallet?.code || '---'})
               <ChevronDown className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </button>
 
-            {/* Dropdown Menu */}
+            {/* Dropdown Menu Wallets */}
             <AnimatePresence>
               {isOpen && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="absolute top-full mt-2 w-72 bg-[var(--color-card)] backdrop-blur-xl border border-white/10 rounded-xl shadow-lg z-10 overflow-hidden"
+                  className="absolute top-full mt-2 w-72 bg-[var(--color-card)] backdrop-blur-xl border border-white/10 rounded-xl shadow-lg z-20 overflow-hidden"
                 >
                   {wallets.map((wallet: Wallet) => (
                     <button
                       key={wallet.id}
-                      onClick={() => selectWallet(wallet)}
+                      onClick={() => handleSelectWallet(wallet)}
                       className="w-full flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/5 transition-colors"
                     >
                       <span className="text-2xl">{wallet.flag}</span>
@@ -87,29 +94,68 @@ export const BalancePanel: React.FC<BalancePanelProps> = ({
         {isHidden ? (
           <h2 className="text-5xl font-bold text-white tracking-widest">••••••</h2>
         ) : (
-          <h2 className="text-5xl font-bold text-white">
-            {formatCurrency(selectedWallet.balance, selectedWallet.code)}
-          </h2>
+          <div className="flex items-baseline gap-2">
+            <h2 className="text-5xl font-bold text-white">
+              {selectedWallet ? formatCurrency(selectedWallet.balance, selectedWallet.code) : '---'}
+            </h2>
+          </div>
         )}
       </div>
 
-      {/* Saldo Total */}
-      <div className="mt-2">
+      {/* Saldo Total (Con Selector de Moneda Base) */}
+      <div className="mt-4 flex items-center gap-2">
         <span className="text-sm font-medium text-white/60">
-          Valor total aprox:
+          Valor total aprox en:
         </span>
-        <span className="ml-2 text-md font-semibold text-white/90">
-          {isHidden ? "••••••••" : formatCurrency(totalBalance, "ARS")}
+        
+        {/* Selector de Moneda Base */}
+        <div className="relative">
+            <button
+                onClick={() => setIsCurrencyOpen(!isCurrencyOpen)}
+                className="bg-white/10 hover:bg-white/20 px-2 py-1 rounded text-xs font-bold text-white flex items-center gap-1 transition-colors"
+            >
+                {baseCurrency}
+                <ChevronDown className="w-3 h-3" />
+            </button>
+            <AnimatePresence>
+                {isCurrencyOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="absolute bottom-full mb-2 left-0 w-24 bg-[#0f172a] border border-white/20 rounded-lg shadow-xl z-20 overflow-hidden max-h-48 overflow-y-auto custom-scrollbar"
+                    >
+                        {CURRENCIES.map(curr => (
+                            <button
+                                key={curr}
+                                onClick={() => {
+                                    onCurrencyChange(curr);
+                                    setIsCurrencyOpen(false);
+                                }}
+                                className={`w-full text-left px-3 py-2 text-xs hover:bg-white/10 transition-colors ${baseCurrency === curr ? 'text-[var(--color-primary)] font-bold' : 'text-white/80'}`}
+                            >
+                                {curr}
+                            </button>
+                        ))}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+
+        <span className="ml-auto text-lg font-semibold text-white/90">
+          {isHidden ? "••••••••" : formatCurrency(totalBalance, baseCurrency)}
         </span>
       </div>
     </div>
 
     {/* MODAL DE DATOS DE CUENTA */}
-    <AccountDetailsModal 
-      isOpen={showInfoModal} 
-      onClose={() => setShowInfoModal(false)} 
-      wallet={selectedWallet} 
-    />
+    {selectedWallet && (
+        <AccountDetailsModal 
+        isOpen={showInfoModal} 
+        onClose={() => setShowInfoModal(false)} 
+        wallet={selectedWallet} 
+        />
+    )}
     </>
   );
 };

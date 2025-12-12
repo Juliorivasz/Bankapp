@@ -288,7 +288,7 @@ export default function TransferPage() {
                             onChange={(e) => setMonto(e.target.value)}
                             onWheel={(e) => e.currentTarget.blur()}
                             placeholder="0.00"
-                            className={`w-full bg-white/5 border ${saldoInsuficiente ? 'border-red-500/50 focus:ring-red-500' : 'border-white/10 focus:ring-[var(--color-primary)]'} rounded-xl px-4 py-6 pl-10 text-3xl font-bold text-white focus:ring-2 focus:border-transparent transition-all placeholder:text-white/10`}
+                            className={`w-full bg-white/5 border ${saldoInsuficiente ? 'border-red-500/50 focus:ring-red-500' : 'border-white/10 focus:ring-[var(--color-primary)]'} rounded-xl px-4 py-6 pl-18 text-3xl font-bold text-white focus:ring-2 focus:border-transparent transition-all placeholder:text-white/10`}
                             autoFocus
                         />
                     </div>

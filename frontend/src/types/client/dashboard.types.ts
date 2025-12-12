@@ -18,6 +18,7 @@ export interface TransaccionInfoDTO {
     tipo: string;
     balanceAcumulado: number;
     estado: string;
+    numeroCuenta: string;
 }
 
 export interface EstadisticasDTO {
@@ -86,6 +87,10 @@ export interface BalancePanelProps {
   totalBalance: number;
   isHidden: boolean;
   onToggleVisibility: () => void;
+  baseCurrency: string;
+  onCurrencyChange: (currency: string) => void;
+  selectedWallet: Wallet;
+  onWalletChange: (wallet: Wallet) => void;
 }
 
 export interface MovementsChartProps {

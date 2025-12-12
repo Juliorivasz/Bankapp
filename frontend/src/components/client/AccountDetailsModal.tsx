@@ -1,4 +1,4 @@
-import React from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Copy } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -19,10 +19,12 @@ export const AccountDetailsModal: React.FC<AccountDetailsModalProps> = ({ isOpen
     toast.success(`${label} copiado al portapapeles`);
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -76,6 +78,7 @@ export const AccountDetailsModal: React.FC<AccountDetailsModalProps> = ({ isOpen
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };

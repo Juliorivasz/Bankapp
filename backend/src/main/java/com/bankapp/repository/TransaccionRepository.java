@@ -31,4 +31,37 @@ public interface TransaccionRepository extends ReactiveCrudRepository<Transaccio
 
     @Query("SELECT DISTINCT cuenta_destino FROM transaccion WHERE numero_cuenta IN (:numerosCuenta) AND tipo_transaccion = 'TRANSFERENCIA_ENVIADA' AND cuenta_destino IS NOT NULL LIMIT 20")
     Flux<String> findDistinctCuentaDestinoByNumeroCuentaIn(java.util.List<String> numerosCuenta);
+
+    // Búsqueda avanzada con filtros y paginación
+    @Query("SELECT * FROM transaccion t WHERE " +
+           "(:numeroCuenta IS NULL OR t.numero_cuenta = :numeroCuenta) AND " +
+           "(:fechaInicio IS NULL OR t.fecha_transaccion >= :fechaInicio) AND " +
+           "(:fechaFin IS NULL OR t.fecha_transaccion <= :fechaFin) AND " +
+           "(:tipo IS NULL OR t.tipo_transaccion = :tipo) AND " +
+           "(:busqueda IS NULL OR (LOWER(t.descripcion) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR CAST(t.monto AS CHAR) LIKE CONCAT('%', :busqueda, '%'))) " +
+           "ORDER BY t.fecha_transaccion DESC LIMIT :limit OFFSET :offset")
+    Flux<Transaccion> findByAdvancedFilters(
+            String numeroCuenta,
+            java.time.LocalDateTime fechaInicio,
+            java.time.LocalDateTime fechaFin,
+            String tipo,
+            String busqueda,
+            int limit,
+            long offset
+    );
+
+    // Contar total para paginación con los mismos filtros
+    @Query("SELECT COUNT(*) FROM transaccion t WHERE " +
+           "(:numeroCuenta IS NULL OR t.numero_cuenta = :numeroCuenta) AND " +
+           "(:fechaInicio IS NULL OR t.fecha_transaccion >= :fechaInicio) AND " +
+           "(:fechaFin IS NULL OR t.fecha_transaccion <= :fechaFin) AND " +
+           "(:tipo IS NULL OR t.tipo_transaccion = :tipo) AND " +
+           "(:busqueda IS NULL OR (LOWER(t.descripcion) LIKE LOWER(CONCAT('%', :busqueda, '%')) OR CAST(t.monto AS CHAR) LIKE CONCAT('%', :busqueda, '%')))")
+    Mono<Long> countByAdvancedFilters(
+            String numeroCuenta,
+            java.time.LocalDateTime fechaInicio,
+            java.time.LocalDateTime fechaFin,
+            String tipo,
+            String busqueda
+    );
 }

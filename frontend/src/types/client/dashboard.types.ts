@@ -34,6 +34,7 @@ export interface DestinatarioDTO {
   alias: string;
   cbu: string;
   banco: string;
+  moneda: string;
 }
 
 export interface DashboardResponse {

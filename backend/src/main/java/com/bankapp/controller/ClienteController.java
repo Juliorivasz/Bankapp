@@ -186,7 +186,8 @@ public class ClienteController {
                                     u.getNombreUsuario(), // Retornamos nombreUsuario como "Nombre Completo" por ahora
                                     u.getNombreUsuario(),
                                     wallet.getNumeroCuenta(),
-                                    "BankApp"
+                                    "BankApp",
+                                    moneda // Asumimos que la wallet encontrada es de esta moneda
                                 );
                             }))
                         .switchIfEmpty(
@@ -199,12 +200,31 @@ public class ClienteController {
                                             u.getNombreUsuario(),
                                             u.getNombreUsuario(),
                                             wallet.getNumeroCuenta(),
-                                            "BankApp"
+                                            "BankApp",
+                                            moneda // Symbol
                                         ))
                                     )
                                 )
                         )
                         .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Destinatario no encontrado o no tiene cuenta en " + moneda)));
                 });
+        }
+        // --- 10. Busqueda Avanzada de Transacciones ---
+        @GetMapping("/transacciones/busqueda")
+        public Mono<org.springframework.data.domain.Page<Transaccion>> buscarTransacciones(
+            Mono<Authentication> auth,
+            @RequestParam(required = false) Long idWallet,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime fechaInicio,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime fechaFin,
+            @RequestParam(required = false) String tipo,
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+        ) {
+            return auth.flatMap(authentication -> usuarioService
+                    .obtenerIdUsuarioPorNombreUsuario(authentication.getName())
+                    .flatMap(idUsuario -> transaccionService.buscarTransacciones(
+                        idUsuario, idWallet, fechaInicio, fechaFin, tipo, busqueda, page, size
+                    )));
         }
 }

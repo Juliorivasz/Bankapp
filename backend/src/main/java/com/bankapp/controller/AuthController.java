@@ -167,4 +167,24 @@ public class AuthController {
                             "Error al procesar la solicitud de login."));
                 });
     }
+    /**
+     * Endpoint para refrescar el token de sesión.
+     * Requiere autenticación previa (Bearer Token).
+     */
+    @PostMapping("/refresh")
+    public Mono<JwtResponseDTO> refreshToken(
+            org.springframework.security.core.Authentication authentication) {
+        
+        // El principal es un String (username) establecido por JwtAuthenticationManager
+        String username = authentication.getName();
+
+        // Cargar los detalles del usuario actualizados desde la BD para generar el nuevo token
+        return userDetailsService.findByUsername(username)
+                .map(userDetails -> {
+                    String newToken = jwtUtil.generateToken(userDetails);
+                    JwtResponseDTO response = new JwtResponseDTO();
+                    response.setToken(newToken);
+                    return response;
+                });
+    }
 }

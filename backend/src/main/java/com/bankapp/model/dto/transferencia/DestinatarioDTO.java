@@ -13,4 +13,5 @@ public class DestinatarioDTO {
     private String alias; // username
     private String cbu; // numeroCuenta (si se buscó por cbu)
     private String banco; // "BankApp"
+    private String moneda; // ARS, USD, etc.
 }

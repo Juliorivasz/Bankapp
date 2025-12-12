@@ -1,4 +1,4 @@
-import { startTransition, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Check, ChevronRight, User, AlertCircle, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../service/apiClient';
@@ -9,6 +9,8 @@ import { dashboardService } from '../../service/dashboard.service';
 import { transferService } from '../../service/transfer.service';
 import { AccountDetailsModal } from '../../components/client/AccountDetailsModal';
 import type { Wallet } from '../../types/client/dashboard.types';
+import { getFlag } from '../../utils/currencyUtils';
+import { FormattedAmountInput } from '../../components/ui/FormattedAmountInput';
 
 // Pasos del Wizard
 const STEPS = ['Destinatario', 'Monto', 'Confirmación', 'Comprobante'];
@@ -126,19 +128,9 @@ export default function TransferPage() {
       code: selectedWallet.monedaSimbolo,
       balance: selectedWallet.balance,
       primaryValue: selectedWallet.balance,
-      flag: getFlag(selectedWallet.monedaSimbolo)
+      flag: getFlag(selectedWallet.monedaSimbolo),
+      status: selectedWallet.estado || 'activo'
   } : null;
-
-  function getFlag(code: string) {
-    switch (code) {
-        case 'ARS': return '🇦🇷';
-        case 'USD': return '🇺🇸';
-        case 'EUR': return '🇪🇺';
-        case 'BRL': return '🇧🇷';
-        case 'BTC': return '₿';
-        default: return '💰';
-    }
-  }
 
   return (
     <>
@@ -228,34 +220,21 @@ export default function TransferPage() {
                         </button>
                     </div>
 
-                    {/* Destinatarios Recientes */}
-                    {recentRecipients.length > 0 && (
-                        <div className="pt-4">
-                            <h3 className="text-sm text-white/50 mb-3 flex items-center gap-2">
-                                <History className="w-4 h-4" /> Recientes
-                            </h3>
-                            <div className="space-y-2">
-                                {recentRecipients.map((recent) => (
-                                    <button 
-                                        key={recent.alias + recent.cbu}
-                                        onClick={() => handleSelectRecent(recent)}
-                                        className="w-full flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl transition-all group text-left"
-                                    >
-                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--color-primary)]/30 to-purple-500/30 text-white font-bold flex items-center justify-center text-sm group-hover:scale-105 transition-transform">
-                                            {recent.nombreCompleto.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="font-bold text-white group-hover:text-[var(--color-primary)] transition-colors">{recent.nombreCompleto}</p>
-                                            <p className="text-xs text-white/40">{recent.banco}</p>
-                                        </div>
-                                        <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/60" />
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+
+
+            {/* Destinatarios Recientes Agrupados */}
+            {recentRecipients.length > 0 && (
+                <div className="pt-4">
+                    <h3 className="text-sm text-white/50 mb-3 flex items-center gap-2">
+                        <History className="w-4 h-4" /> Recientes
+                    </h3>
+                    <div className="space-y-4">
+                        <RecentRecipientsList recipients={recentRecipients} onSelect={handleSelectRecent} />
+                    </div>
                 </div>
             )}
+        </div>
+    )}
 
             {/* PASO 2: MONTO */}
             {currentStep === 1 && destinatario && (
@@ -281,16 +260,16 @@ export default function TransferPage() {
                     <h2 className="text-xl font-bold">¿Cuánto quieres enviar?</h2>
                     
                     <div className="relative">
+                    <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl text-[var(--color-primary)]">{selectedWallet?.monedaSimbolo === 'USD' ? 'US$' : '$'}</span>
-                        <input 
-                            type="number" 
+                        <FormattedAmountInput 
                             value={monto}
-                            onChange={(e) => setMonto(e.target.value)}
-                            onWheel={(e) => e.currentTarget.blur()}
-                            placeholder="0.00"
+                            onChange={(val) => setMonto(val)}
+                            placeholder="0,00"
                             className={`w-full bg-white/5 border ${saldoInsuficiente ? 'border-red-500/50 focus:ring-red-500' : 'border-white/10 focus:ring-[var(--color-primary)]'} rounded-xl px-4 py-6 pl-18 text-3xl font-bold text-white focus:ring-2 focus:border-transparent transition-all placeholder:text-white/10`}
                             autoFocus
                         />
+                    </div>
                     </div>
                     <div className="flex justify-between items-center text-sm">
                        <p className={saldoInsuficiente ? 'text-red-400 font-bold' : 'text-white/50'}>
@@ -397,4 +376,78 @@ export default function TransferPage() {
     )}
     </>
   );
+}
+
+// ----------------------------------------------------
+// Componentes Auxiliares (FUERA del componente principal)
+// ----------------------------------------------------
+
+// Componente para manejar el estado de acordeón de destinatarios recientes
+function RecentRecipientsList({ recipients, onSelect }: { recipients: DestinatarioDTO[], onSelect: (d: DestinatarioDTO) => void }) {
+    const [expandedUser, setExpandedUser] = useState<string | null>(null);
+
+    const grouped = Object.values(recipients.reduce((acc, curr) => {
+        const key = curr.idUsuario?.toString() || curr.nombreCompleto;
+        if (!acc[key]) {
+            acc[key] = {
+                id: key,
+                user: curr,
+                wallets: []
+            };
+        }
+        if (!acc[key].wallets.some(w => w.cbu === curr.cbu)) {
+            acc[key].wallets.push(curr);
+        }
+        return acc;
+    }, {} as Record<string, { id: string, user: DestinatarioDTO, wallets: DestinatarioDTO[] }>));
+
+    return (
+        <>
+            {grouped.map(({ id, user, wallets }) => (
+                <div key={id} className="bg-white/5 rounded-2xl overflow-hidden border border-white/5 transition-all">
+                    
+                    {/* Header del Usuario (Clickable) */}
+                    <button 
+                        onClick={() => setExpandedUser(expandedUser === id ? null : id)}
+                        className="w-full p-4 flex items-center gap-3 border-b border-white/5 bg-white/[0.02] hover:bg-white/5 transition-colors text-left"
+                    >
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--color-primary)]/30 to-purple-500/30 text-white font-bold flex items-center justify-center text-sm">
+                            {user.nombreCompleto.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                        </div>
+                        <div className="flex-1">
+                            <p className="font-bold text-white">{user.nombreCompleto}</p>
+                            <p className="text-xs text-white/40">{user.alias}</p>
+                        </div>
+                        <ChevronRight className={`w-5 h-5 text-white/40 transition-transform ${expandedUser === id ? 'rotate-90' : ''}`} />
+                    </button>
+
+                    {/* Lista de Wallets (Expandable) */}
+                    {expandedUser === id && (
+                        <div className="divide-y divide-white/5 bg-black/20 animate-fadeIn">
+                            {wallets.map((wallet) => (
+                                <button
+                                    key={wallet.cbu}
+                                    onClick={() => onSelect(wallet)}
+                                    className="w-full flex items-center justify-between p-3 pl-16 hover:bg-white/10 transition-colors text-left group"
+                                >
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-lg">{getFlag(wallet.moneda)}</span>
+                                            <span className="text-sm font-medium text-white group-hover:text-[var(--color-primary)] transition-colors">
+                                                {wallet.moneda} • {wallet.banco}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-white/40 mt-0.5 font-mono tracking-wider">{wallet.cbu}</p>
+                                    </div>
+                                    <div className="px-3 py-1 rounded-full bg-white/5 text-[10px] text-white/60 border border-white/5 group-hover:border-[var(--color-primary)]/30 group-hover:text-[var(--color-primary)] transition-colors">
+                                        Seleccionar
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            ))}
+        </>
+    );
 }

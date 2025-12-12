@@ -320,15 +320,72 @@ public class TransaccionService {
                 return transaccionRepository.findDistinctCuentaDestinoByNumeroCuentaIn(numerosCuenta);
             })
             .flatMap(cbu -> walletRepository.findByNumeroCuenta(cbu)
-                .flatMap(walletDestino -> usuarioRepository.findById(walletDestino.getIdUsuario())
-                    .map(usuarioDestino -> new com.bankapp.model.dto.transferencia.DestinatarioDTO(
+                .flatMap(walletDestino -> Mono.zip(
+                        usuarioRepository.findById(walletDestino.getIdUsuario()),
+                        tipoMonedaRepository.findById(walletDestino.getIdMoneda())
+                ).map(tuple -> {
+                    Usuario usuarioDestino = tuple.getT1();
+                    var tipoMoneda = tuple.getT2();
+                    return new com.bankapp.model.dto.transferencia.DestinatarioDTO(
                         usuarioDestino.getIdUsuario(),
                         usuarioDestino.getNombreUsuario(), 
                         usuarioDestino.getNombreUsuario(), 
                         walletDestino.getNumeroCuenta(),
-                        "BankApp"
-                    ))
-                )
+                        "BankApp",
+                        tipoMoneda.getSimboloMoneda()
+                    );
+                }))
             );
+    }
+    /**
+     * Búsqueda avanzada de transacciones con paginación.
+     */
+    public Mono<org.springframework.data.domain.Page<Transaccion>> buscarTransacciones(
+            Long idUsuario,
+            Long idWallet,
+            LocalDateTime fechaInicio,
+            LocalDateTime fechaFin,
+            String tipo,
+            String busqueda,
+            int page,
+            int size) {
+
+        // 1. Validar que la wallet pertenece al usuario (si se especifica una)
+        Mono<String> numeroCuentaMono;
+        if (idWallet != null) {
+            numeroCuentaMono = walletRepository.findById(idWallet)
+                    .filter(w -> w.getIdUsuario().equals(idUsuario))
+                    .switchIfEmpty(Mono.error(new SecurityException("La wallet no pertenece al usuario.")))
+                    .map(Wallet::getNumeroCuenta);
+        } else {
+             // Si no se especifica wallet, ¿buscar en todas? 
+             // Por ahora requerimos wallet específica según requerimiento.
+             // O podemos soportar null para buscar en todas (requeriría ajustar Repo).
+             // Vamos a asumir que el frontend siempre manda idWallet por ahora o implementamos
+             // una mejora futura para "Todas".
+             // Ajuste: El Repo espera String numeroCuenta. Si es null, busca en TODAS las transacciones
+             // lo cual es inseguro (vería transacciones de otros).
+             // Así que SI idWallet es null, deberíamos buscar todas las cuentas del usuario.
+             // Por simplicidad y requerimiento "individual", lanzamos error si es null o lo manejamos.
+             // Vamos a forzar seleccionar una wallet por ahora.
+             return Mono.error(new IllegalArgumentException("Debes seleccionar una billetera."));
+        }
+
+        return numeroCuentaMono.flatMap(numeroCuenta -> {
+            long offset = (long) page * size;
+            
+            Mono<Long> totalMono = transaccionRepository.countByAdvancedFilters(
+                    numeroCuenta, fechaInicio, fechaFin, tipo, busqueda);
+
+            Flux<Transaccion> transaccionesFlux = transaccionRepository.findByAdvancedFilters(
+                    numeroCuenta, fechaInicio, fechaFin, tipo, busqueda, size, offset);
+
+            return Mono.zip(transaccionesFlux.collectList(), totalMono)
+                    .map(tuple -> new org.springframework.data.domain.PageImpl<>(
+                            tuple.getT1(),
+                            org.springframework.data.domain.PageRequest.of(page, size),
+                            tuple.getT2()
+                    ));
+        });
     }
 }

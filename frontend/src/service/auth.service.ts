@@ -51,11 +51,17 @@ const fetchPaises = async (): Promise<ICountry[]> => {
   return response.data;
 };
 
+const refreshToken = async () => {
+  const response = await apiClient.post('/auth/refresh');
+  return response.data; // { token: "..." }
+};
+
 export const authService = {
   login,
   registroRapido,
   validarUsuario,
   fetchPaises,
   verificarCuenta,
-  reenviarEmailVerificacion
+  reenviarEmailVerificacion,
+  refreshToken
 };

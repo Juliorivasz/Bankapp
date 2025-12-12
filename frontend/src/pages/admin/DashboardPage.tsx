@@ -14,6 +14,7 @@ import { BalancePanel } from '../../components/client/BalancePanel';
 import { MovementsChart } from '../../components/client/MovementsChart';
 import { TransactionsTable } from '../../components/client/TransactionsTable';
 import { dashboardService } from '../../service/dashboard.service';
+import { Loader } from '../../components/ui/Loader';
 import { useCurrencyStore } from '../../store/currency.store';
 import { exchangeService } from '../../service/exchange.service';
 import { getFlag } from '../../utils/currencyUtils';
@@ -53,8 +54,7 @@ export default function DashboardPage() {
     fetchRates();
   }, []);
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
+  const fetchDashboard = async () => {
       try {
         setLoading(true);
         const from = dateRange?.from;
@@ -70,6 +70,7 @@ export default function DashboardPage() {
       }
     };
 
+  useEffect(() => {
     fetchDashboard();
   }, [dateRange]);
 
@@ -182,26 +183,25 @@ export default function DashboardPage() {
 
   // CALCULO DEL BALANCE TOTAL DINÁMICO (Panel Inferior)
   const totalBalance = useMemo(() => {
-      // Ahora el valor total aproximado refleja SOLO la wallet seleccionada convertida a la moneda base.
-      if (!selectedWallet || !rates) return 0;
-      
-      return exchangeService.convert(
-          selectedWallet.balance, 
-          selectedWallet.code, 
-          baseCurrency, 
-          rates
-      );
-  }, [selectedWallet, rates, baseCurrency]);
+      // El valor total aproximado es la suma de TODAS las wallets convertidas a la moneda de la wallet seleccionada
+      if (!wallets.length || !rates || !selectedWallet) return 0;
 
-  if (loading) {
-    return (
-      <div className="min-h-full flex items-center justify-center bg-[var(--color-background)] text-white">
-        <div className="animate-pulse flex flex-col items-center">
-            <div className="h-12 w-12 rounded-full border-4 border-t-[var(--color-primary)] border-r-transparent border-b-[var(--color-primary)] border-l-transparent animate-spin mb-4"></div>
-            <p className="text-lg">Cargando tu actividad financiera...</p>
-        </div>
-      </div>
-    );
+      return wallets.reduce((acc, wallet) => {
+          // Convertir cada wallet a la moneda de la wallet seleccionada
+          const amountInSelectedCurrency = exchangeService.convert(
+              wallet.balance,
+              wallet.code,
+              selectedWallet.code,
+              rates
+          );
+          return acc + amountInSelectedCurrency;
+      }, 0);
+  }, [wallets, rates, selectedWallet]);
+
+  if (loading && !dashboardData) {
+    // Solo mostrar loader full si no hay data (carga inicial)
+    // Para recargas silenciosas (update) no bloqueamos la UI
+    return <Loader text="Cargando tu actividad financiera..." />;
   }
 
   if (error) {
@@ -292,7 +292,7 @@ export default function DashboardPage() {
         initialSourceWalletId={selectedWallet ? selectedWallet.id : undefined}
         wallets={wallets}
         onSuccess={() => {
-            window.location.reload(); 
+            fetchDashboard(); // Recargar datos sin reload
         }}
       />
     </div>

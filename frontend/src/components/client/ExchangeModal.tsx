@@ -6,6 +6,7 @@ import { walletService } from '../../service/wallet.service';
 import { exchangeService } from '../../service/exchange.service';
 import { formatCurrency } from '../../utils/coinFormat';
 import type { Wallet } from '../../types/client/dashboard.types';
+import { FormattedAmountInput } from '../ui/FormattedAmountInput';
 
 interface ExchangeModalProps {
   isOpen: boolean;
@@ -152,19 +153,42 @@ export const ExchangeModal: React.FC<ExchangeModalProps> = ({ isOpen, onClose, w
                     <select 
                         className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-[var(--color-primary)] appearance-none"
                         value={sourceWalletId || ''}
-                        onChange={e => setSourceWalletId(e.target.value)}
+                        onChange={e => {
+                            const newSourceId = e.target.value;
+                            setSourceWalletId(newSourceId);
+                            // Auto-adjust target if it becomes same as source
+                            if (newSourceId === targetWalletId) {
+                                const newTarget = wallets.find(w => w.id !== newSourceId);
+                                setTargetWalletId(newTarget ? newTarget.id : null);
+                            }
+                        }}
                     >
                         {wallets.map(w => (
-                            <option key={w.id} value={w.id} disabled={w.id === targetWalletId}>
+                            <option 
+                                key={w.id} 
+                                value={w.id} 
+                                className={w.id === targetWalletId ? "bg-neutral-800 text-white/30" : "bg-[#0f172a] text-white"}
+                                disabled={w.id === targetWalletId}
+                            >
                                 {w.flag} {w.currency} ({formatCurrency(w.balance, w.code)})
                             </option>
                         ))}
                     </select>
                 </div>
 
-                {/* Arrow Icon */}
-                <div className="flex items-center justify-center pt-6 text-white/30">
-                    <ArrowRight className="w-6 h-6" />
+                {/* Swap Button */}
+                <div className="flex items-center justify-center pt-6">
+                    <button 
+                        type="button"
+                        onClick={() => {
+                            setSourceWalletId(targetWalletId);
+                            setTargetWalletId(sourceWalletId);
+                        }}
+                        className="p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-[var(--color-primary)] transition-colors"
+                        title="Intercambiar origen y destino"
+                    >
+                         <ArrowRightLeft className="w-5 h-5" />
+                    </button>
                 </div>
 
                  {/* Target */}
@@ -173,12 +197,23 @@ export const ExchangeModal: React.FC<ExchangeModalProps> = ({ isOpen, onClose, w
                     <select 
                         className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-[var(--color-primary)] appearance-none"
                         value={targetWalletId || ''}
-                        onChange={e => setTargetWalletId(e.target.value)}
+                        onChange={e => {
+                           const newTargetId = e.target.value;
+                           setTargetWalletId(newTargetId);
+                            // Auto-adjust source if it becomes same as target
+                            if (newTargetId === sourceWalletId) {
+                                const newSource = wallets.find(w => w.id !== newTargetId);
+                                setSourceWalletId(newSource ? newSource.id : null);
+                            }
+                        }}
                     >
-                         {wallets
-                            .filter(w => w.id !== sourceWalletId) // Filter out source logic handling
-                            .map(w => (
-                            <option key={w.id} value={w.id}>
+                         {wallets.map(w => (
+                            <option 
+                                key={w.id} 
+                                value={w.id} 
+                                className={w.id === sourceWalletId ? "bg-neutral-800 text-white/30" : "bg-[#0f172a] text-white"}
+                                disabled={w.id === sourceWalletId}
+                            >
                                 {w.flag} {w.currency}
                             </option>
                         ))}
@@ -191,14 +226,11 @@ export const ExchangeModal: React.FC<ExchangeModalProps> = ({ isOpen, onClose, w
                 <label className="text-xs uppercase text-white/50 font-bold tracking-wider">Monto a Convertir ({sourceWallet?.code})</label>
                 <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 font-bold">$</span>
-                    <input 
-                        type="number" 
-                        min="0" 
-                        step="0.01"
+                    <FormattedAmountInput 
                         placeholder="0.00"
                         className="w-full bg-white/5 border border-white/10 rounded-xl p-4 pl-8 text-2xl font-bold text-white focus:outline-none focus:border-[var(--color-primary)] placeholder:text-white/20"
                         value={amount}
-                        onChange={e => setAmount(e.target.value)}
+                        onChange={val => setAmount(val)}
                     />
                 </div>
                 {sourceWallet && (

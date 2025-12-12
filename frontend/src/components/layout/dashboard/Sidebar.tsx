@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../../store/auth.store';
 import Logo from '../../atoms/Logo';
+import { LogoutModal } from '../../auth/LogoutModal';
 
 interface SidebarProps {
   isMobileOpen: boolean;
@@ -38,12 +39,16 @@ export default function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const handleLogout = () => {
-    if (window.confirm('¿Estás seguro que deseas cerrar sesión?')) {
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
       logout();
       navigate('/login');
-    }
+      setShowLogoutModal(false);
   };
 
   return (
@@ -60,15 +65,12 @@ export default function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
       >
         <div className="h-full w-full flex flex-col bg-gradient-to-b from-blue-950 to-blue-900 border-r border-white/10 relative overflow-hidden">
           {/* Header */}
-          <div className="p-6 border-b border-white/10 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <div 
-                className={`transition-opacity duration-300 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100'}`}
-                style={{ transitionDelay: isCollapsed ? '0ms' : '100ms' }}
-              >
-                {!isCollapsed && <Logo />}
-              </div>
-            </div>
+          <div className={`h-20 flex items-center ${isCollapsed ? 'justify-center' : 'px-6'} border-b border-white/10 flex-shrink-0`}>
+             <div className="flex items-center justify-between w-full">
+               <div className="flex items-center justify-center w-full transition-all duration-300">
+                  <Logo showText={!isCollapsed} />
+               </div>
+             </div>
           </div>
 
           {/* User Info */}
@@ -129,7 +131,7 @@ export default function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
           {/* Logout Button */}
           <div className="p-4 border-t border-white/10 flex-shrink-0">
             <button
-              onClick={handleLogout}
+              onClick={handleLogoutClick}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all group"
             >
               <LogOut className="w-5 h-5 flex-shrink-0" />
@@ -232,7 +234,7 @@ export default function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
                 {/* Logout Button */}
                 <div className="p-4 border-t border-white/10">
                   <button
-                    onClick={handleLogout}
+                    onClick={handleLogoutClick}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all group"
                   >
                     <LogOut className="w-5 h-5" />
@@ -244,6 +246,13 @@ export default function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
           </>
         )}
       </AnimatePresence>
+
+      {/* Logout Modal */}
+      <LogoutModal 
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={confirmLogout}
+      />
     </>
   );
 }

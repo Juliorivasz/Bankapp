@@ -17,13 +17,18 @@ import ProfilePage from "../pages/admin/ProfilePage"
 import SettingsPage from "../pages/admin/SettingsPage"
 import Navbar from "../components/layout/Navbar"
 import TransferPage from "../pages/client/TransferPage"
+import { SessionManager } from "../components/auth/SessionManager"
 
 export const AppRouter = () => {
   return (
     <Routes>
       {/* --- Rutas Públicas con LayoutClient (CON Footer) --- */}
       <Route path="/" element={<LayoutClient />}>
-        <Route index element={<LandingPage />} />
+        {/* Si ya está logueado, la landing lo redirige al dashboard */}
+        <Route element={<PublicOnlyRoute />}>
+           <Route index element={<LandingPage />} />
+        </Route>
+        
         <Route path="/features" element={<FeaturesPage />} />
         <Route path="/security" element={<SecurityPage />} />
         <Route path="/about" element={<AboutPage />} />
@@ -53,7 +58,11 @@ export const AppRouter = () => {
 
       {/* --- Rutas Privadas con LayoutDashboard (CON Sidebar, SIN Footer) --- */}
       <Route element={<PrivateRoute allowedRoles={['ROLE_CLIENTE']} />}>
-        <Route element={<LayoutDashboard />}>
+        <Route element={
+          <SessionManager>
+            <LayoutDashboard />
+          </SessionManager>
+        }>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/wallets" element={<WalletsPage />} />
           <Route path="/transactions" element={<TransactionsPage />} />

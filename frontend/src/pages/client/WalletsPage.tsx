@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Wallet as WalletIcon, Plus, ChevronRight, Copy, ArrowRightLeft } from 'lucide-react';
 import { walletService } from '../../service/wallet.service';
 import { toast } from 'react-toastify';
@@ -8,6 +8,7 @@ import { AccountDetailsModal } from '../../components/client/AccountDetailsModal
 import { ExchangeModal } from '../../components/client/ExchangeModal';
 import { getFlag } from '../../utils/currencyUtils';
 
+import { Loader } from '../../components/ui/Loader';
 import type { Wallet } from '../../types/client/dashboard.types'; // Import shared type
 
 export default function WalletsPage() {
@@ -59,20 +60,10 @@ export default function WalletsPage() {
     setShowDetailsModal(true);
   };
 
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
 
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-  };
+  if (loading) {
+    return <Loader text="Cargando tus billeteras..." />;
+  }
 
   return (
     <div className="min-h-full bg-[var(--color-background)] text-white p-4 sm:p-6 lg:p-8 pb-24">
@@ -112,13 +103,7 @@ export default function WalletsPage() {
       </div>
 
       {/* GRID DE WALLETS */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map(i => (
-                <div key={i} className="h-48 bg-white/5 rounded-2xl animate-pulse" />
-            ))}
-        </div>
-      ) : wallets.length === 0 ? (
+      {wallets.length === 0 ? (
         <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -137,21 +122,14 @@ export default function WalletsPage() {
             </button>
         </motion.div>
       ) : (
-        <motion.div 
-            variants={container}
-            initial="hidden"
-            animate="show"
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        <div 
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fadeIn"
         >
-            <AnimatePresence>
-                {wallets.map((wallet) => (
-                    <motion.div
-                        key={wallet.id}
-                        variants={item}
-                        layoutId={wallet.id.toString()}
-                        whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                        className="group relative overflow-hidden bg-gradient-to-br from-white/10 to-white/5 hover:to-white/10 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl transition-all"
-                    >
+            {wallets.map((wallet) => (
+                <div
+                    key={wallet.id}
+                    className="group relative overflow-hidden bg-gradient-to-br from-white/10 to-white/5 hover:to-white/10 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl transition-all duration-300 hover:-translate-y-1"
+                >
                          {/* Fondo decorativo */}
                          <div className="absolute -right-10 -top-10 w-40 h-40 bg-[var(--color-primary)]/10 rounded-full blur-3xl group-hover:bg-[var(--color-primary)]/20 transition-all duration-500" />
                          
@@ -206,10 +184,9 @@ export default function WalletsPage() {
                                 </button>
                             </div>
                         </div>
-                    </motion.div>
+                    </div>
                 ))}
-            </AnimatePresence>
-        </motion.div>
+        </div>
       )}
 
       {/* MODALES */}

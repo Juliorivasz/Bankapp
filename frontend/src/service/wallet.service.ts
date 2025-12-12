@@ -25,6 +25,11 @@ export const walletService = {
         estado: 'ACTIVO'
     };
   },
+
+  getAvailableCurrencies: async (): Promise<{idMoneda: number, nombreMoneda: string, simboloMoneda: string}[]> => {
+      const { data } = await apiClient.get<any[]>('/cliente/monedas');
+      return data;
+  },
   
   // Helpers para UI
   mapToWalletUI: (dto: WalletInfoDTO): Wallet => {
@@ -35,7 +40,12 @@ export const walletService = {
           code: dto.monedaSimbolo,
           balance: dto.balance,
           primaryValue: dto.balance,
-          flag: getFlag(dto.monedaSimbolo)
+          flag: getFlag(dto.monedaSimbolo),
+          status: dto.estado
       };
+  },
+
+  intercambiar: async (data: { numeroCuentaOrigen: string; numeroCuentaDestino: string; montoOrigen: number; tasaConversion: number }) => {
+    return apiClient.post('/cliente/intercambiar', data);
   }
 };

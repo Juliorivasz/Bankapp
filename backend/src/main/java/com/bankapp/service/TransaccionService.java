@@ -26,6 +26,7 @@ public class TransaccionService {
     private final UsuarioRepository usuarioRepository;
     private final WalletRepository walletRepository;
     private final TransaccionRepository transaccionRepository;
+    private final com.bankapp.repository.TipoMonedaRepository tipoMonedaRepository;
 
     /**
      * Implementa la lógica de partida doble: debita al origen y acredita al destino.
@@ -111,8 +112,6 @@ public class TransaccionService {
                                         walletOrigen.getNumeroCuenta() // <--- Cuenta Origen (Para referencia inversa)
                                 );
 
-                                // FIX: Usar zip para suscribirse una sola vez a ambos y retornar el debito.
-                                // Mono.when(debito, credito).then(debito) causaba doble suscripción a 'debito'.
                                 return Mono.zip(debito, credito).map(result -> result.getT1());
                             });
                         });
@@ -163,7 +162,7 @@ public class TransaccionService {
         return transaccionRepository.save(transaccion);
     }
     
-    // Sobrecarga para usar en depositar/retirar (cuentaDestino = null)
+    // Sobrecarga para usar en depositar/retirar
     private Mono<Transaccion> crearTransaccion(Long idWallet, String numeroCuenta, BigDecimal monto, com.bankapp.model.Enum.TipoTransaccion tipo, EstadoTransaccion estado, String descripcion) {
         return crearTransaccion(idWallet, numeroCuenta, monto, tipo, estado, descripcion, null);
     }
@@ -174,8 +173,6 @@ public class TransaccionService {
 
     /**
      * HISTORIA DE USUARIO: Añadir fondos (Depósito).
-     * @param idUsuario ID del usuario autenticado (NUEVO)
-     * @param depositoDTO a depositar.
      */
     @Transactional
     public Mono<Transaccion> depositar(Long idUsuario, DepositoDTO depositoDTO) {
@@ -185,11 +182,9 @@ public class TransaccionService {
 
         return walletRepository.findByNumeroCuenta(depositoDTO.getNumeroCuenta())
                 .switchIfEmpty(Mono.error(new RuntimeException("Wallet no encontrada para depósito.")))
-                // VALIDACIÓN DE PROPIEDAD: Solo permite la acción si la wallet es del usuario autenticado
                 .filter(w -> w.getIdUsuario().equals(idUsuario))
-                .switchIfEmpty(Mono.error(new SecurityException("Acceso denegado: La wallet no pertenece al usuario."))) // 403 Forbidden
+                .switchIfEmpty(Mono.error(new SecurityException("Acceso denegado: La wallet no pertenece al usuario.")))
                 .flatMap(wallet -> {
-                    // ... (resto de la lógica de actualización y guardado de wallet) ...
                     wallet.setBalance(wallet.getBalance().add(depositoDTO.getMonto()));
                     wallet.setUltimaActualizacion(LocalDateTime.now());
 
@@ -205,8 +200,6 @@ public class TransaccionService {
 
     /**
      * HISTORIA DE USUARIO: Retirar fondos.
-     * @param idUsuario ID del usuario autenticado (NUEVO)
-     * @param retiroDTO dto de la wallet a retirar.
      */
     @Transactional
     public Mono<Transaccion> retirar(Long idUsuario, RetiroDTO retiroDTO) {
@@ -216,17 +209,12 @@ public class TransaccionService {
 
         return walletRepository.findByNumeroCuenta(retiroDTO.getNumeroCuenta())
                 .switchIfEmpty(Mono.error(new RuntimeException("Wallet no encontrada para retiro.")))
-                // VALIDACIÓN DE PROPIEDAD: Solo permite la acción si la wallet es del usuario autenticado
                 .filter(w -> w.getIdUsuario().equals(idUsuario))
-                .switchIfEmpty(Mono.error(new SecurityException("Acceso denegado: La wallet no pertenece al usuario."))) // 403 Forbidden
+                .switchIfEmpty(Mono.error(new SecurityException("Acceso denegado: La wallet no pertenece al usuario.")))
                 .flatMap(wallet -> {
-                    // ... (resto de la lógica de validación de balance y retiro) ...
-
                     if (wallet.getBalance().compareTo(retiroDTO.getMonto()) < 0) {
                         return Mono.error(new IllegalArgumentException("Fondos insuficientes para el retiro."));
                     }
-
-                    // ... (Actualización de balance y guardado de transaccion) ...
                     wallet.setBalance(wallet.getBalance().subtract(retiroDTO.getMonto()));
                     wallet.setUltimaActualizacion(LocalDateTime.now());
 
@@ -241,8 +229,86 @@ public class TransaccionService {
     }
 
     /**
-     * Obtiene los destinatarios recientes de transferencias realizadas por el usuario.
+     * Realiza un intercambio de divisas entre dos wallets del mismo usuario.
      */
+    @Transactional
+    public Mono<Transaccion> intercambiar(Long idUsuario, com.bankapp.model.dto.transferencia.IntercambioDTO intercambioDTO) {
+        BigDecimal montoOrigen = intercambioDTO.getMontoOrigen();
+        BigDecimal tasa = intercambioDTO.getTasaConversion();
+
+        if (montoOrigen == null || montoOrigen.compareTo(BigDecimal.ZERO) <= 0) {
+            return Mono.error(new IllegalArgumentException("El monto a intercambiar debe ser positivo."));
+        }
+        if (tasa == null || tasa.compareTo(BigDecimal.ZERO) <= 0) {
+            return Mono.error(new IllegalArgumentException("La tasa de conversión debe ser válida."));
+        }
+
+        return walletRepository.findByNumeroCuenta(intercambioDTO.getNumeroCuentaOrigen())
+            .switchIfEmpty(Mono.error(new RuntimeException("Wallet de origen no encontrada.")))
+            .filter(w -> w.getIdUsuario().equals(idUsuario))
+            .switchIfEmpty(Mono.error(new SecurityException("Wallet de origen no pertenece al usuario.")))
+            .flatMap(walletOrigen -> 
+                walletRepository.findByNumeroCuenta(intercambioDTO.getNumeroCuentaDestino())
+                    .switchIfEmpty(Mono.error(new RuntimeException("Wallet destino no encontrada.")))
+                    .filter(w -> w.getIdUsuario().equals(idUsuario))
+                    .switchIfEmpty(Mono.error(new SecurityException("Wallet destino no pertenece al usuario.")))
+                    .flatMap(walletDestino -> {
+                        
+                        if (walletOrigen.getBalance().compareTo(montoOrigen) < 0) {
+                            return Mono.error(new IllegalArgumentException("Fondos insuficientes."));
+                        }
+
+                        BigDecimal montoDestino = montoOrigen.multiply(tasa); 
+
+                        walletOrigen.setBalance(walletOrigen.getBalance().subtract(montoOrigen));
+                        walletDestino.setBalance(walletDestino.getBalance().add(montoDestino));
+                        
+                        walletOrigen.setUltimaActualizacion(LocalDateTime.now());
+                        walletDestino.setUltimaActualizacion(LocalDateTime.now());
+
+                        return Mono.zip(walletRepository.save(walletOrigen), walletRepository.save(walletDestino))
+                            .flatMap(tuple -> {
+                                
+                                Mono<String> symbolOrigenMono = tipoMonedaRepository.findById(walletOrigen.getIdMoneda())
+                                    .map(m -> m.getSimboloMoneda())
+                                    .defaultIfEmpty("???");
+                                    
+                                Mono<String> symbolDestinoMono = tipoMonedaRepository.findById(walletDestino.getIdMoneda())
+                                    .map(m -> m.getSimboloMoneda())
+                                    .defaultIfEmpty("???");
+
+                                return Mono.zip(symbolOrigenMono, symbolDestinoMono)
+                                    .flatMap(symbols -> {
+                                        String symbolOrigen = symbols.getT1();
+                                        String symbolDestino = symbols.getT2();
+
+                                        Mono<Transaccion> debito = crearTransaccion(
+                                            walletOrigen.getIdWallet(),
+                                            walletOrigen.getNumeroCuenta(),
+                                            montoOrigen.negate(),
+                                            com.bankapp.model.Enum.TipoTransaccion.TRANSFERENCIA_ENVIADA, 
+                                            EstadoTransaccion.EXITO,
+                                            "Conversión a " + symbolDestino,
+                                            walletDestino.getNumeroCuenta()
+                                        );
+
+                                        Mono<Transaccion> credito = crearTransaccion(
+                                            walletDestino.getIdWallet(),
+                                            walletDestino.getNumeroCuenta(),
+                                            montoDestino,
+                                            com.bankapp.model.Enum.TipoTransaccion.TRANSFERENCIA_RECIBIDA,
+                                            EstadoTransaccion.EXITO,
+                                            "Conversión desde " + symbolOrigen,
+                                            walletOrigen.getNumeroCuenta()
+                                        );
+
+                                        return Mono.zip(debito, credito).map(t -> t.getT1());
+                                    });
+                            });
+                    })
+            );
+    }
+
     public Flux<com.bankapp.model.dto.transferencia.DestinatarioDTO> obtenerDestinatariosRecientes(Long idUsuario) {
         return walletRepository.findByIdUsuario(idUsuario)
             .map(Wallet::getNumeroCuenta)
@@ -253,13 +319,12 @@ public class TransaccionService {
                 }
                 return transaccionRepository.findDistinctCuentaDestinoByNumeroCuentaIn(numerosCuenta);
             })
-            // Para cada CBU destino, recuperamos la info del usuario y cuenta
             .flatMap(cbu -> walletRepository.findByNumeroCuenta(cbu)
                 .flatMap(walletDestino -> usuarioRepository.findById(walletDestino.getIdUsuario())
                     .map(usuarioDestino -> new com.bankapp.model.dto.transferencia.DestinatarioDTO(
                         usuarioDestino.getIdUsuario(),
-                        usuarioDestino.getNombreUsuario(), // Alias / Nombre
-                        usuarioDestino.getNombreUsuario(), // Nombre completo (usamos username por ahora)
+                        usuarioDestino.getNombreUsuario(), 
+                        usuarioDestino.getNombreUsuario(), 
                         walletDestino.getNumeroCuenta(),
                         "BankApp"
                     ))

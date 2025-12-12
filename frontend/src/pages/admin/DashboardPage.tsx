@@ -2,13 +2,14 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Send } from 'lucide-react';
+import { Send, ArrowRightLeft } from 'lucide-react';
+import { ExchangeModal } from '../../components/client/ExchangeModal';
 
 import { type DateRange } from 'react-day-picker';
 import { addDays } from 'date-fns';
 import 'react-day-picker/dist/style.css';
 import { useAuthStore } from '../../store/auth.store';
-import type { ChartData, Transaction, Wallet, DashboardResponse, WalletInfoDTO, TransaccionInfoDTO } from '../../types/client/dashboard.types';
+import type { Transaction, Wallet, DashboardResponse, WalletInfoDTO, TransaccionInfoDTO } from '../../types/client/dashboard.types';
 import { BalancePanel } from '../../components/client/BalancePanel';
 import { MovementsChart } from '../../components/client/MovementsChart';
 import { TransactionsTable } from '../../components/client/TransactionsTable';
@@ -28,7 +29,11 @@ export default function DashboardPage() {
   
   const [isBalanceHidden, setIsBalanceHidden] = useState(false);
   const [rates, setRates] = useState<Record<string, number> | null>(null);
-  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(null);
+  const [selectedWalletId, setSelectedWalletId] = useState<string | null>(() => {
+    // Try to restore from localStorage on boot
+    return localStorage.getItem('selectedWalletId');
+  });
+  const [showExchangeModal, setShowExchangeModal] = useState(false);
 
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: addDays(new Date(), -30),
@@ -78,16 +83,28 @@ export default function DashboardPage() {
       code: w.monedaSimbolo, 
       balance: w.balance,
       primaryValue: w.balance,
-      flag: getFlag(w.monedaSimbolo)
+      flag: getFlag(w.monedaSimbolo),
+      status: w.estado
     }));
   }, [dashboardData]);
 
-  // Inicializar selectedWalletId cuando cargan las wallets
+  // Inicializar selectedWalletId cuando cargan las wallets si no hay uno (o si el guardado ya no existe)
   useEffect(() => {
-      if (wallets.length > 0 && !selectedWalletId) {
-          setSelectedWalletId(wallets[0].id);
+      if (wallets.length > 0) {
+          // If null, OR if the stored/current ID doesn't exist in the new list, default to first
+          const exists = wallets.some(w => w.id === selectedWalletId);
+          if (!selectedWalletId || !exists) {
+              setSelectedWalletId(wallets[0].id);
+          }
       }
   }, [wallets, selectedWalletId]);
+
+  // Save to localStorage whenever it changes
+  useEffect(() => {
+      if (selectedWalletId) {
+          localStorage.setItem('selectedWalletId', selectedWalletId);
+      }
+  }, [selectedWalletId]);
 
   const selectedWallet = useMemo(() => {
       return wallets.find(w => w.id === selectedWalletId) || wallets[0];
@@ -103,21 +120,9 @@ export default function DashboardPage() {
         t.numeroCuenta === selectedWallet.accountNumber
     );
 
-    return walletTransactions.map((t: TransaccionInfoDTO) => {
-        // Como estamos filtrando por wallet, el monto YA ES en la moneda de la wallet.
-        // Pero el usuario puede querer ver todo en su "convertidor" (baseCurrency).
-        // El requerimiento dice: "debe mostrarse segun la wallet elegida".
-        // Entonces mostramos en la moneda de la WALLET, no en la BaseCurrency del convertidor inferior.
-        
-        // WAIT: El usuario dijo "el que dice valor total aprox es a cual conversion quiero que me muestre... al cambiar la wallet se debe poder actualizar globalmente"
-        // PERO TAMBIEN: "los graficos y transacciones debe mostrarse segun la wallet elegida".
-        // INTERPRETACION:
-        // - Lista de transacciones: Moneda de la Wallet.
-        // - Gráfico: Moneda de la Wallet.
-        // - Total Global (abajo): Convertido a baseCurrency.
-
+    return walletTransactions.map((t: TransaccionInfoDTO, i: number) => {
         return {
-            id: t.idTransaccion,
+            id: t.idTransaccion || -(i + 19999),
             type: mapTransactionType(t.tipo),
             amount: t.monto, // Monto original de la transacción (moneda de la wallet)
             currency: selectedWallet.code, // Moneda de la wallet
@@ -126,7 +131,7 @@ export default function DashboardPage() {
             description: t.descripcion
         };
     });
-  }, [dashboardData, rates, selectedWallet]); // Removing baseCurrency dep if not converting transactions to it
+  }, [dashboardData, rates, selectedWallet]); 
   
   // 3. Recálculo del Gráfico (Balance Diario) para la Wallet Seleccionada
   const chartData = useMemo(() => {
@@ -158,7 +163,7 @@ export default function DashboardPage() {
       
       // Mapear al formato del gráfico
       return sortedData.map(item => ({
-         fecha: item.fecha, // Required by BalanceDiarioDTO
+         fecha: item.fecha, 
          date: item.fecha, 
          fullDate: item.fecha, 
          ingresos: item.ingresos,
@@ -228,20 +233,30 @@ export default function DashboardPage() {
             <p className="text-base sm:text-lg text-white/70 mt-1">Aquí está el resumen de tu actividad financiera.</p>
         </div>
         
-        <button
-            onClick={() => navigate('/transferir')}
-            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/80 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-transform hover:scale-105"
-        >
-            <Send className="w-5 h-5" />
-            Transferir
-        </button>
+        <div className="flex gap-3">
+             <button
+                onClick={() => setShowExchangeModal(true)}
+                className="bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-transform hover:scale-105 border border-white/10"
+            >
+                <ArrowRightLeft className="w-5 h-5" />
+                Convertir
+            </button>
+
+            <button
+                onClick={() => navigate('/transferir')}
+                className="bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/80 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-transform hover:scale-105"
+            >
+                <Send className="w-5 h-5" />
+                Transferir
+            </button>
+        </div>
       </div>
 
       {/* Contenedor Principal del Dashboard */}
       <div className="grid grid-cols-1 gap-6">
         
         {/* Panel de Saldo */}
-        <div className="animate-fadeIn" style={{ animationDelay: '0.1s' }}>
+        <div className="animate-fadeIn relative z-30" style={{ animationDelay: '0.1s' }}>
           <BalancePanel 
             wallets={wallets}
             totalBalance={totalBalance}
@@ -269,6 +284,17 @@ export default function DashboardPage() {
         </div>
 
       </div>
+
+      {/* Exchange Modal */}
+      <ExchangeModal 
+        isOpen={showExchangeModal}
+        onClose={() => setShowExchangeModal(false)}
+        initialSourceWalletId={selectedWallet ? selectedWallet.id : undefined}
+        wallets={wallets}
+        onSuccess={() => {
+            window.location.reload(); 
+        }}
+      />
     </div>
   );
 }

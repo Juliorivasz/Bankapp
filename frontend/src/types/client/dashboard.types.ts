@@ -61,6 +61,7 @@ export type Wallet = {
   balance: number;
   primaryValue: number; 
   flag: string;
+  status: string;
 };
 
 export type Transaction = {

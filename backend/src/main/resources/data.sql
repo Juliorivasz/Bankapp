@@ -1,127 +1,129 @@
 --------------------------------------------
 -- 1. ROLES
 --------------------------------------------
-INSERT INTO rol (id_rol, nombre_rol) VALUES (1, 'ADMIN') ON DUPLICATE KEY UPDATE nombre_rol=VALUES(nombre_rol);
-INSERT INTO rol (id_rol, nombre_rol) VALUES (2, 'CLIENTE') ON DUPLICATE KEY UPDATE nombre_rol=VALUES(nombre_rol);
+INSERT IGNORE INTO rol (id_rol, nombre_rol) VALUES (1, 'ADMIN');
+INSERT IGNORE INTO rol (id_rol, nombre_rol) VALUES (2, 'CLIENTE');
 
 --------------------------------------------
--- 2. TIPOS DE MONEDA (Una sentencia por moneda)
+-- 2. TIPOS DE MONEDA
+-- Usamos INSERT IGNORE para evitar errores si ya existen (por ID o por Nombre único)
 --------------------------------------------
-INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (1, 'Dolar Estadounidense', 'USD') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
-INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (2, 'Bitcoin', 'BTC') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
-INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (3, 'Peso Argentino', 'ARS') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
-INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (4, 'Peso Mexicano', 'MXN') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
-INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (5, 'Peso Chileno', 'CLP') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
-INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (6, 'Peso Colombiano', 'COP') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_monEDA=VALUES(simbolo_moneda);
-INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (7, 'Sol Peruano', 'PEN') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
-INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (8, 'Real Brasileño', 'BRL') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
-INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (9, 'Dólar Canadiense', 'CAD') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
-INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (10, 'Dólar Jamaiquino', 'JMD') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
-INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (11, 'Boliviano', 'BOB') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
-INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (12, 'Quetzal Guatemalteco', 'GTQ') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
-INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (13, 'Lempira Hondureña', 'HNL') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
-INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (14, 'Balboa Panameño', 'PAB') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
-INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (15, 'Dólar de Trinidad y Tobago', 'TTD') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
-INSERT INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (16, 'Euro', 'EUR') ON DUPLICATE KEY UPDATE nombre_moneda=VALUES(nombre_moneda), simbolo_moneda=VALUES(simbolo_moneda);
-
---------------------------------------------
--- 3. PAÍSES DE AMÉRICA (Una sentencia por país)
---------------------------------------------
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (1, 'Argentina', 'AR') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (2, 'Brasil', 'BR') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (3, 'Canadá', 'CA') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (4, 'Chile', 'CL') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (5, 'Colombia', 'CO') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (6, 'Ecuador', 'EC') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (7, 'Estados Unidos', 'US') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (8, 'México', 'MX') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (9, 'Perú', 'PE') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (10, 'Uruguay', 'UY') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (11, 'Venezuela', 'VE') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (12, 'Bolivia', 'BO') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (13, 'Paraguay', 'PY') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (14, 'Guatemala', 'GT') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (15, 'Honduras', 'HN') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (16, 'Nicaragua', 'NI') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (17, 'Panamá', 'PA') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (18, 'El Salvador', 'SV') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (19, 'Costa Rica', 'CR') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (20, 'Cuba', 'CU') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (21, 'Jamaica', 'JM') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (22, 'Haití', 'HT') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (23, 'República Dominicana', 'DO') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (24, 'Bahamas', 'BS') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (25, 'Barbados', 'BB') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (26, 'Belice', 'BZ') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (27, 'Guyana', 'GY') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (28, 'Surinam', 'SR') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (29, 'Trinidad y Tobago', 'TT') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
-INSERT INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (30, 'Granada', 'GD') ON DUPLICATE KEY UPDATE nombre_pais=VALUES(nombre_pais);
+INSERT IGNORE INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (1, 'Dolar Estadounidense', 'USD');
+INSERT IGNORE INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (2, 'Peso Mexicano', 'MXN');
+INSERT IGNORE INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (3, 'Peso Argentino', 'ARS');
+INSERT IGNORE INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (4, 'Peso Chileno', 'CLP');
+INSERT IGNORE INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (5, 'Peso Colombiano', 'COP');
+INSERT IGNORE INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (6, 'Sol Peruano', 'PEN');
+INSERT IGNORE INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (7, 'Real Brasileño', 'BRL');
+INSERT IGNORE INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (8, 'Dolar Canadiense', 'CAD');
+INSERT IGNORE INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (9, 'Dolar Jamaiquino', 'JMD');
+INSERT IGNORE INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (10, 'Boliviano', 'BOB');
+INSERT IGNORE INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (11, 'Quetzal Guatemalteco', 'GTQ');
+INSERT IGNORE INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (12, 'Lempira Hondureña', 'HNL');
+INSERT IGNORE INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (13, 'Balboa Panameño', 'PAB');
+INSERT IGNORE INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (14, 'Dolar de Trinidad y Tobago', 'TTD');
+INSERT IGNORE INTO tipomoneda (id_moneda, nombre_moneda, simbolo_moneda) VALUES (15, 'Euro', 'EUR');
 
 --------------------------------------------
--- 4. RELACIÓN PAÍS-MONEDA (Una sentencia por relación)
+-- 3. PAÍSES DE AMÉRICA
 --------------------------------------------
--- Argentina (id_pais=1)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (1, 3, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- ARS
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (1, 1, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- USD (Por ser común)
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (1, 'Argentina', 'AR');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (2, 'Brasil', 'BR');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (3, 'Canada', 'CA');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (4, 'Chile', 'CL');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (5, 'Colombia', 'CO');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (6, 'Ecuador', 'EC');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (7, 'Estados Unidos', 'US');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (8, 'Mexico', 'MX');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (9, 'Peru', 'PE');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (10, 'Uruguay', 'UY');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (11, 'Venezuela', 'VE');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (12, 'Bolivia', 'BO');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (13, 'Paraguay', 'PY');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (14, 'Guatemala', 'GT');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (15, 'Honduras', 'HN');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (16, 'Nicaragua', 'NI');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (17, 'Panama', 'PA');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (18, 'El Salvador', 'SV');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (19, 'Costa Rica', 'CR');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (20, 'Cuba', 'CU');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (21, 'Jamaica', 'JM');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (22, 'Haiti', 'HT');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (23, 'Republica Dominicana', 'DO');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (24, 'Bahamas', 'BS');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (25, 'Barbados', 'BB');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (26, 'Belice', 'BZ');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (27, 'Guyana', 'GY');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (28, 'Surinam', 'SR');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (29, 'Trinidad y Tobago', 'TT');
+INSERT IGNORE INTO pais (id_pais, nombre_pais, codigo_iso) VALUES (30, 'Granada', 'GD');
 
--- Brasil (id_pais=2)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (2, 8, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- BRL
+--------------------------------------------
+-- 4. RELACIÓN PAÍS-MONEDA
+-- Usamos SELECT para buscar el ID dinámicamente según el Símbolo
+--------------------------------------------
 
--- Canadá (id_pais=3)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (3, 9, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- CAD
+-- Argentina (ARS)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 1, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'ARS';
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 1, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'USD';
 
--- Chile (id_pais=4)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (4, 5, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- CLP
+-- Brasil (BRL)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 2, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'BRL';
 
--- Colombia (id_pais=5)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (5, 6, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- COP
+-- Canada (CAD)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 3, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'CAD';
 
--- Ecuador (id_pais=6)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (6, 1, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- USD
+-- Chile (CLP)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 4, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'CLP';
 
--- Estados Unidos (id_pais=7)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (7, 1, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- USD
+-- Colombia (COP)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 5, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'COP';
 
--- México (id_pais=8)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (8, 4, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- MXN
+-- Ecuador (USD)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 6, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'USD';
 
--- Perú (id_pais=9)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (9, 7, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- PEN
+-- Estados Unidos (USD)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 7, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'USD';
 
--- Uruguay (id_pais=10)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (10, 1, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- USD (Común)
+-- Mexico (MXN)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 8, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'MXN';
 
--- Venezuela (id_pais=11)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (11, 1, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- USD (Común)
+-- Peru (PEN)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 9, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'PEN';
 
--- Bolivia (id_pais=12)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (12, 11, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- BOB
+-- Uruguay (USD)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 10, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'USD';
 
--- Paraguay (id_pais=13)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (13, 1, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- USD (Común)
+-- Venezuela (USD)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 11, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'USD';
 
--- Guatemala (id_pais=14)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (14, 12, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- GTQ
+-- Bolivia (BOB)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 12, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'BOB';
 
--- Honduras (id_pais=15)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (15, 13, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- HNL
+-- Paraguay (USD)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 13, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'USD';
 
--- Nicaragua (id_pais=16)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (16, 1, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- USD (Común)
+-- Guatemala (GTQ)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 14, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'GTQ';
 
--- Panamá (id_pais=17)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (17, 14, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- PAB
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (17, 1, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- USD
+-- Honduras (HNL)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 15, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'HNL';
 
--- El Salvador (id_pais=18)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (18, 1, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- USD
+-- Nicaragua (USD)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 16, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'USD';
 
--- Costa Rica (id_pais=19)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (19, 1, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- USD (Común)
+-- Panama (PAB, USD)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 17, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'PAB';
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 17, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'USD';
 
--- Jamaica (id_pais=21)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (21, 10, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- JMD
+-- El Salvador (USD)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 18, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'USD';
 
--- Trinidad y Tobago (id_pais=29)
-INSERT INTO pais_moneda (id_pais, id_moneda, es_principal) VALUES (29, 15, TRUE) ON DUPLICATE KEY UPDATE es_principal=VALUES(es_principal); -- TTD
+-- Costa Rica (USD)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 19, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'USD';
+
+-- Jamaica (JMD)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 21, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'JMD';
+
+-- Trinidad y Tobago (TTD)
+INSERT IGNORE INTO pais_moneda (id_pais, id_moneda, es_principal) SELECT 29, id_moneda, TRUE FROM tipomoneda WHERE simbolo_moneda = 'TTD';

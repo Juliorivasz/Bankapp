@@ -1,31 +1,44 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wallet as WalletIcon, Plus, ChevronRight, Copy } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { Wallet as WalletIcon, Plus, ChevronRight, Copy, ArrowRightLeft } from 'lucide-react';
 import { walletService } from '../../service/wallet.service';
-import type { Wallet } from '../../types/client/dashboard.types';
-import { formatCurrency } from '../../utils/coinFormat';
-import { AccountDetailsModal } from '../../components/client/AccountDetailsModal';
+import { toast } from 'react-toastify';
 import { AddWalletModal } from '../../components/client/AddWalletModal';
+import { AccountDetailsModal } from '../../components/client/AccountDetailsModal';
+import { ExchangeModal } from '../../components/client/ExchangeModal';
+import { getFlag } from '../../utils/currencyUtils';
+
+import type { Wallet } from '../../types/client/dashboard.types'; // Import shared type
 
 export default function WalletsPage() {
-  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [wallets, setWallets] = useState<Wallet[]>([]); // Use shared type
   const [loading, setLoading] = useState(true);
 
   // Modales
   const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-
+  const [showExchangeModal, setShowExchangeModal] = useState(false);
   const fetchWallets = async () => {
-    setLoading(true);
     try {
+      setLoading(true);
       const data = await walletService.getWallets();
-      const uiWallets = data.map(walletService.mapToWalletUI);
-      setWallets(uiWallets);
+      // Map WalletInfoDTO to shared Wallet interface
+      const mappedWallets: Wallet[] = data.map(w => ({
+        id: w.idWallet.toString(),
+        accountNumber: w.numeroCuenta,
+        balance: w.balance,
+        status: w.estado,
+        currency: w.monedaNombre, // Map to 'currency'
+        code: w.monedaSimbolo,    // Map to 'code'
+        primaryValue: w.balance,  // Assuming 1:1 for display or recalculate if needed
+        flag: getFlag(w.monedaSimbolo) // Calculate flag
+      }));
+      setWallets(mappedWallets);
     } catch (error) {
-      console.error(error);
-      toast.error("Error al cargar tus wallets");
+// ...
+      console.error("Error fetching wallets:", error);
+      toast.error('Error al cargar las billeteras.');
     } finally {
       setLoading(false);
     }
@@ -35,14 +48,30 @@ export default function WalletsPage() {
     fetchWallets();
   }, []);
 
-  const handleCopy = (text: string) => {
-      navigator.clipboard.writeText(text);
-      toast.success("CBU copiado al portapapeles");
+  const handleCopy = (e: React.MouseEvent, text: string) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    toast.success('¡CBU copiado!');
   };
 
   const openDetails = (wallet: Wallet) => {
-      setSelectedWallet(wallet);
-      setShowDetailsModal(true);
+    setSelectedWallet(wallet);
+    setShowDetailsModal(true);
+  };
+
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const item = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
   };
 
   return (
@@ -65,86 +94,122 @@ export default function WalletsPage() {
             </p>
         </motion.div>
 
-        <motion.button
+        <motion.div 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            onClick={() => setShowAddModal(true)}
-            className="group flex items-center gap-2 bg-gradient-to-r from-[var(--color-primary)] to-purple-600 hover:to-purple-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-[var(--color-primary)]/25 transition-all"
+            className="flex gap-3"
         >
-            <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
-            Nueva Wallet
-        </motion.button>
+
+
+            <button
+                onClick={() => setShowAddModal(true)}
+                className="group flex items-center gap-2 bg-gradient-to-r from-[var(--color-primary)] to-purple-600 hover:to-purple-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:shadow-[var(--color-primary)]/25 transition-all"
+            >
+                <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+                Nueva Wallet
+            </button>
+        </motion.div>
       </div>
 
       {/* GRID DE WALLETS */}
-      {loading && wallets.length === 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1,2,3].map(i => (
-                  <div key={i} className="h-48 bg-white/5 animate-pulse rounded-2xl"></div>
-              ))}
-          </div>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map(i => (
+                <div key={i} className="h-48 bg-white/5 rounded-2xl animate-pulse" />
+            ))}
+        </div>
+      ) : wallets.length === 0 ? (
+        <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-20 bg-white/5 rounded-3xl border border-white/10"
+        >
+            <WalletIcon className="w-20 h-20 text-white/20 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-white mb-2">No tienes billeteras activas</h3>
+            <p className="text-white/60 mb-6 max-w-md mx-auto">
+                Comienza creando tu primera billetera digital para gestionar tus fondos de manera segura.
+            </p>
+            <button
+                onClick={() => setShowAddModal(true)}
+                className="bg-[var(--color-primary)] text-white px-8 py-3 rounded-xl font-bold hover:bg-[var(--color-primary)]/90 transition-colors"
+            >
+                Crear mi primera Wallet
+            </button>
+        </motion.div>
       ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AnimatePresence mode='popLayout'>
-              {wallets.map((wallet, index) => (
-                  <motion.div
-                    key={wallet.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    layoutId={wallet.id}
-                    className="relative group overflow-hidden bg-white/5 backdrop-blur-md border border-white/10 hover:border-[var(--color-primary)]/50 rounded-2xl p-6 transition-all hover:bg-white/[0.07]"
-                  >
-                      {/* Fondo decorativo */}
-                      <div className="absolute -right-10 -top-10 w-40 h-40 bg-[var(--color-primary)]/5 rounded-full blur-3xl group-hover:bg-[var(--color-primary)]/10 transition-colors"></div>
+        <motion.div 
+            variants={container}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+            <AnimatePresence>
+                {wallets.map((wallet) => (
+                    <motion.div
+                        key={wallet.id}
+                        variants={item}
+                        layoutId={wallet.id.toString()}
+                        whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                        className="group relative overflow-hidden bg-gradient-to-br from-white/10 to-white/5 hover:to-white/10 backdrop-blur-md rounded-2xl border border-white/10 shadow-xl transition-all"
+                    >
+                         {/* Fondo decorativo */}
+                         <div className="absolute -right-10 -top-10 w-40 h-40 bg-[var(--color-primary)]/10 rounded-full blur-3xl group-hover:bg-[var(--color-primary)]/20 transition-all duration-500" />
+                         
+                        <div className="p-6 relative z-10 flex flex-col h-full justify-between gap-6">
+                            
+                            {/* Cabecera Wallet */}
+                            <div className="flex justify-between items-start">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-4xl">{wallet.flag}</span>
+                                    <div>
+                                        <h3 className="font-bold text-lg text-white group-hover:text-[var(--color-primary)] transition-colors">
+                                            {wallet.currency}
+                                        </h3>
+                                        <div className="flex items-center gap-2 text-white/50 text-xs font-mono bg-black/20 px-2 py-1 rounded cursor-pointer hover:bg-black/40 transition-colors"
+                                             onClick={(e) => handleCopy(e, wallet.accountNumber)}
+                                             title="Copiar CBU"
+                                        >
+                                            {wallet.accountNumber}
+                                            <Copy className="w-3 h-3" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className={`w-3 h-3 rounded-full ${wallet.status === 'ACTIVA' ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : 'bg-red-500'}`} />
+                            </div>
 
-                      <div className="relative z-10">
-                          <div className="flex justify-between items-start mb-6">
-                              <div className="flex items-center gap-3">
-                                  <span className="text-4xl filter drop-shadow-lg">{wallet.flag}</span>
-                                  <div>
-                                      <h3 className="font-bold text-lg">{wallet.currency}</h3>
-                                      <p className="text-xs text-white/50">{wallet.code}</p>
-                                  </div>
-                              </div>
-                              <button onClick={() => openDetails(wallet)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/40 hover:text-white">
-                                  <ChevronRight className="w-5 h-5" />
-                              </button>
-                          </div>
+                            {/* Balance */}
+                            <div>
+                                <p className="text-white/60 text-sm mb-1">Saldo Disponible</p>
+                                <p className="text-3xl font-bold text-white tracking-tight">
+                                    {wallet.code} {wallet.balance.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                                </p>
+                            </div>
 
-                          <div className="mb-6">
-                              <p className="text-sm text-white/60 mb-1">Balance Total</p>
-                              <p className="text-3xl font-bold tracking-tight">
-                                  {formatCurrency(wallet.balance, wallet.code)}
-                              </p>
-                          </div>
-
-                          <div className="pt-4 border-t border-white/5 flex justify-between items-center">
-                              <div className="flex items-center gap-2 group/cbu cursor-pointer" onClick={() => handleCopy(wallet.accountNumber)}>
-                                  <span className="font-mono text-xs text-white/40 group-hover/cbu:text-white transition-colors truncate max-w-[150px]">
-                                      {wallet.accountNumber}
-                                  </span>
-                                  <Copy className="w-3 h-3 text-white/20 group-hover/cbu:text-[var(--color-primary)]" />
-                              </div>
-                              <span className={`text-xs px-2 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/20`}>
-                                  Activa
-                              </span>
-                          </div>
-                      </div>
-                  </motion.div>
-              ))}
+                            {/* Acciones */}
+                            <div className="pt-4 border-t border-white/10 flex gap-2">
+                                <button 
+                                    onClick={() => {
+                                        setSelectedWallet(wallet);
+                                        setShowExchangeModal(true);
+                                    }}
+                                    className="flex-1 bg-white/5 hover:bg-white/10 text-white py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 group/btn"
+                                >
+                                    <ArrowRightLeft className="w-4 h-4 text-white/50 group-hover/btn:rotate-180 transition-transform duration-500" />
+                                    Convertir
+                                </button>
+                                <button 
+                                    onClick={() => openDetails(wallet)}
+                                    className="flex-1 bg-white/5 hover:bg-white/10 text-white py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 group/btn"
+                                >
+                                    Ver Detalles
+                                    <ChevronRight className="w-4 h-4 text-white/50 group-hover/btn:translate-x-1 transition-transform" />
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                ))}
             </AnimatePresence>
-            
-            {/* Empty State si no hay wallets */}
-            {!loading && wallets.length === 0 && (
-                <div className="col-span-full py-20 text-center border-2 border-dashed border-white/10 rounded-3xl">
-                    <p className="text-white/40 mb-4">No tienes ninguna wallet activa</p>
-                    <button onClick={() => setShowAddModal(true)} className="text-[var(--color-primary)] font-bold hover:underline">
-                        Crear mi primera wallet
-                    </button>
-                </div>
-            )}
-          </div>
+        </motion.div>
       )}
 
       {/* MODALES */}
@@ -161,6 +226,17 @@ export default function WalletsPage() {
           onClose={() => setShowAddModal(false)} 
           onSuccess={fetchWallets}
           existingWallets={wallets}
+      />
+      
+      <ExchangeModal 
+        isOpen={showExchangeModal}
+        onClose={() => {
+            setShowExchangeModal(false);
+            setSelectedWallet(null);
+        }}
+        initialSourceWalletId={selectedWallet ? selectedWallet.id : undefined}
+        wallets={wallets}
+        onSuccess={fetchWallets}
       />
 
     </div>

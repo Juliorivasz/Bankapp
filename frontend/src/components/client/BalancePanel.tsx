@@ -4,6 +4,7 @@ import { ChevronDown, Eye, EyeOff, Info } from "lucide-react";
 import { AnimatePresence, motion } from 'framer-motion';
 import { formatCurrency } from "../../utils/coinFormat";
 import { AccountDetailsModal } from "./AccountDetailsModal";
+import { useClickOutside } from "../../hooks/useClickOutside";
 
 export const BalancePanel: React.FC<BalancePanelProps> = ({ 
   wallets, 
@@ -15,6 +16,10 @@ export const BalancePanel: React.FC<BalancePanelProps> = ({
   selectedWallet,
   onWalletChange
 }) => {
+  // Click Outside Logic
+  const walletMenuRef = useClickOutside<HTMLDivElement>(() => setIsOpen(false));
+  const currencyMenuRef = useClickOutside<HTMLDivElement>(() => setIsCurrencyOpen(false));
+
   const [isOpen, setIsOpen] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
 
@@ -33,7 +38,7 @@ export const BalancePanel: React.FC<BalancePanelProps> = ({
       
       {/* Selector de Wallet (Combobox) */}
       <div className="flex items-center gap-4">
-          <div className="relative inline-block text-left">
+          <div className="relative inline-block text-left" ref={walletMenuRef}>
             <button
               type="button"
               onClick={() => setIsOpen(!isOpen)}
@@ -51,7 +56,7 @@ export const BalancePanel: React.FC<BalancePanelProps> = ({
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="absolute top-full mt-2 w-72 bg-[var(--color-card)] backdrop-blur-xl border border-white/10 rounded-xl shadow-lg z-20 overflow-hidden"
+                  className="absolute top-full mt-2 w-72 bg-[var(--color-card)] backdrop-blur-xl border border-white/10 rounded-xl shadow-lg z-50 overflow-hidden"
                 >
                   {wallets.map((wallet: Wallet) => (
                     <button
@@ -109,13 +114,13 @@ export const BalancePanel: React.FC<BalancePanelProps> = ({
         </span>
         
         {/* Selector de Moneda Base */}
-        <div className="relative">
+        <div className="relative" ref={currencyMenuRef}>
             <button
                 onClick={() => setIsCurrencyOpen(!isCurrencyOpen)}
-                className="bg-white/10 hover:bg-white/20 px-2 py-1 rounded text-xs font-bold text-white flex items-center gap-1 transition-colors"
+                className="bg-black/30 hover:bg-black/50 border border-white/10 px-3 py-1.5 rounded-full text-xs font-bold text-white flex items-center gap-2 transition-all shadow-sm"
             >
                 {baseCurrency}
-                <ChevronDown className="w-3 h-3" />
+                <ChevronDown className={`w-3 h-3 text-white/50 transition-transform ${isCurrencyOpen ? 'rotate-180' : ''}`} />
             </button>
             <AnimatePresence>
                 {isCurrencyOpen && (
@@ -123,7 +128,7 @@ export const BalancePanel: React.FC<BalancePanelProps> = ({
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="absolute bottom-full mb-2 left-0 w-24 bg-[#0f172a] border border-white/20 rounded-lg shadow-xl z-20 overflow-hidden max-h-48 overflow-y-auto custom-scrollbar"
+                        className="absolute bottom-full mb-2 left-0 w-32 bg-[#0f172a] border border-white/20 rounded-xl shadow-xl z-50 overflow-hidden max-h-48 overflow-y-auto custom-scrollbar"
                     >
                         {CURRENCIES.map(curr => (
                             <button
@@ -132,9 +137,10 @@ export const BalancePanel: React.FC<BalancePanelProps> = ({
                                     onCurrencyChange(curr);
                                     setIsCurrencyOpen(false);
                                 }}
-                                className={`w-full text-left px-3 py-2 text-xs hover:bg-white/10 transition-colors ${baseCurrency === curr ? 'text-[var(--color-primary)] font-bold' : 'text-white/80'}`}
+                                className={`w-full text-left px-4 py-2 text-xs hover:bg-white/10 transition-colors flex justify-between items-center ${baseCurrency === curr ? 'text-[var(--color-primary)] font-bold bg-white/5' : 'text-white/80'}`}
                             >
                                 {curr}
+                                {baseCurrency === curr && <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]" />}
                             </button>
                         ))}
                     </motion.div>

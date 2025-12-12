@@ -141,6 +141,15 @@ public class ClienteController {
                                 .onErrorResume(e -> Mono.error(
                                                 new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage())));
         }
+        
+        // --- 8. Intercambio entre Wallets (Interno) ---
+        @PostMapping("/intercambiar")
+        @ResponseStatus(HttpStatus.CREATED)
+        public Mono<Transaccion> intercambiar(Mono<Authentication> auth, @RequestBody com.bankapp.model.dto.transferencia.IntercambioDTO dto) {
+            return auth.flatMap(authentication -> usuarioService
+                            .obtenerIdUsuarioPorNombreUsuario(authentication.getName())
+                            .flatMap(idUsuario -> transaccionService.intercambiar(idUsuario, dto)));
+        }
 
         // --- 8. Validar Destinatario (Para Transferencias) ---
         @GetMapping("/transferencias/destinatarios/recientes")
@@ -149,6 +158,13 @@ public class ClienteController {
                 .flatMapMany(transaccionService::obtenerDestinatariosRecientes);
         }
 
+        // --- 9. Obtener Monedas Soportadas ---
+        @GetMapping("/monedas")
+        public Flux<com.bankapp.model.TipoMoneda> obtenerMonedasSoportadas() {
+            return tipoMonedaRepository.findAll();
+        }
+
+        // --- 8. Validar Destinatario (Para Transferencias) ---
         @GetMapping("/destinatario/validar")
         public Mono<com.bankapp.model.dto.transferencia.DestinatarioDTO> validarDestinatario(
             @RequestParam String dato, // Alias o CBU

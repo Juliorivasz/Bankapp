@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Wallet, Search, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { walletService } from '../../service/wallet.service';
 import type { Wallet as WalletType } from '../../types/client/dashboard.types';
+import { getFlag } from '../../utils/currencyUtils';
 
 interface AddWalletModalProps {
   isOpen: boolean;
@@ -12,25 +13,42 @@ interface AddWalletModalProps {
   existingWallets: WalletType[];
 }
 
-const AVAILABLE_CURRENCIES = [
-    { code: 'ARS', name: 'Peso Argentino', flag: '🇦🇷' },
-    { code: 'USD', name: 'Dólar Estadounidense', flag: '🇺🇸' },
-    { code: 'EUR', name: 'Euro', flag: '🇪🇺' },
-    { code: 'BRL', name: 'Real Brasileño', flag: '🇧🇷' },
-    { code: 'BTC', name: 'Bitcoin', flag: '₿' },
-    { code: 'ETH', name: 'Ethereum', flag: 'Ξ' },
-    { code: 'GBP', name: 'Libra Esterlina', flag: '🇬🇧' },
-    { code: 'JPY', name: 'Yen Japonés', flag: '🇯🇵' },
-];
-
 export const AddWalletModal: React.FC<AddWalletModalProps> = ({ isOpen, onClose, onSuccess, existingWallets }) => {
   const [loading, setLoading] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // State for dynamic currencies
+  const [availableCurrencies, setAvailableCurrencies] = useState<{code: string, name: string, flag: string}[]>([]);
+  const [fetchingCurrencies, setFetchingCurrencies] = useState(false);
+
+  useEffect(() => {
+      if (isOpen) {
+          fetchCurrencies();
+      }
+  }, [isOpen]);
+
+  const fetchCurrencies = async () => {
+      try {
+          setFetchingCurrencies(true);
+          const data = await walletService.getAvailableCurrencies();
+          const mapped = data.map(c => ({
+              code: c.simboloMoneda,
+              name: c.nombreMoneda,
+              flag: getFlag(c.simboloMoneda)
+          }));
+          setAvailableCurrencies(mapped);
+      } catch (error) {
+          console.error("Error fetching currencies:", error);
+          toast.error("No se pudieron cargar las monedas disponibles");
+      } finally {
+          setFetchingCurrencies(false);
+      }
+  };
 
   const filteredCurrencies = useMemo(() => {
     // 1. Filtrar las que ya tiene el usuario
-    const available = AVAILABLE_CURRENCIES.filter(c => 
+    const available = availableCurrencies.filter(c => 
         !existingWallets.some(w => w.code === c.code)
     );
 
@@ -39,7 +57,7 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ isOpen, onClose,
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
         c.code.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [searchTerm, existingWallets]);
+  }, [searchTerm, existingWallets, availableCurrencies]);
 
   const handleSubmit = async () => {
       if (!selectedCurrency) return;
@@ -102,9 +120,13 @@ export const AddWalletModal: React.FC<AddWalletModalProps> = ({ isOpen, onClose,
 
             {/* Scrollable Content */}
             <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar">
-                {filteredCurrencies.length === 0 ? (
+                {fetchingCurrencies ? (
+                    <div className="flex justify-center items-center py-20 text-white/50 animate-pulse">
+                        Cargando monedas...
+                    </div>
+                ) : filteredCurrencies.length === 0 ? (
                     <div className="text-center py-10 text-white/30 flex flex-col items-center">
-                         {AVAILABLE_CURRENCIES.every(c => existingWallets.some(w => w.code === c.code)) && !searchTerm ? (
+                         {availableCurrencies.every(c => existingWallets.some(w => w.code === c.code)) && !searchTerm ? (
                             <>
                                 <Check className="w-12 h-12 mb-4 text-green-500/50" />
                                 <p className="font-bold text-white/60">¡Ya tienes todas las wallets disponibles!</p>

@@ -24,6 +24,7 @@ public class WalletService {
     private final WalletRepository walletRepository;
     private final HistorialEstadoWalletRepository historialEstadoWalletRepository;
     private final UsuarioRepository usuarioRepository; // Añadido para verificar el ID del administrador
+    private final NotificacionService notificacionService;
 
     // --------------------------------------------------------------------------------
     // 1. Lógica de Gestión de Estado (Modo Admin)
@@ -122,7 +123,16 @@ public class WalletService {
             }
 
             // 2. Crear la wallet si no existe
-            return crearWalletInicial(idUsuario, idMoneda);
+            return crearWalletInicial(idUsuario, idMoneda)
+                .flatMap(wallet -> 
+                    // Crear notificación de nueva wallet
+                    notificacionService.crearNotificacion(
+                        idUsuario,
+                        "Nueva Wallet Creada",
+                        "Se creó exitosamente una nueva wallet para tu cuenta",
+                        com.bankapp.model.Enum.TipoNotificacion.SUCCESS
+                    ).thenReturn(wallet)
+                );
         });
     }
 

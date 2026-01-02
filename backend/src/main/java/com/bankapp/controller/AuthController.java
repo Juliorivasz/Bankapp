@@ -114,7 +114,16 @@ public class AuthController {
                                 .flatMap(usuario -> {
                                     String estadoCuenta = usuario.getEstadoCuenta();
 
-                                    // Diferenciar entre diferentes estados de cuenta
+                                    // Si es PENDIENTE_PERFIL, permitimos el login pero marcamos perfilCompleto = false
+                                    if ("PENDIENTE_PERFIL".equals(estadoCuenta)) {
+                                          String token = jwtUtil.generateToken(userDetails);
+                                          JwtResponseDTO response = new JwtResponseDTO();
+                                          response.setToken(token);
+                                          response.setPerfilCompleto(false);
+                                          return Mono.just(response);
+                                    }
+
+                                    // Diferenciar entre otros estados de cuenta
                                     if ("BLOQUEADO".equals(estadoCuenta)) {
                                         return Mono.error(new ResponseStatusException(
                                                 HttpStatus.FORBIDDEN,
@@ -123,10 +132,6 @@ public class AuthController {
                                         return Mono.error(new ResponseStatusException(
                                                 HttpStatus.LOCKED,
                                                 "Tu cuenta está pendiente de activación. Por favor revisa tu correo electrónico."));
-                                    } else if ("PENDIENTE_PERFIL".equals(estadoCuenta)) {
-                                        return Mono.error(new ResponseStatusException(
-                                                HttpStatus.LOCKED,
-                                                "Por favor completa tu perfil para activar tu cuenta."));
                                     } else if ("SUSPENDIDO".equals(estadoCuenta)) {
                                         return Mono.error(new ResponseStatusException(
                                                 HttpStatus.FORBIDDEN,
@@ -139,10 +144,11 @@ public class AuthController {
                                 });
                     }
 
-                    // 4. Login exitoso - generar token
+                    // 4. Login exitoso (Estado ACTIVA)
                     String token = jwtUtil.generateToken(userDetails);
                     JwtResponseDTO response = new JwtResponseDTO();
                     response.setToken(token);
+                    response.setPerfilCompleto(true);
 
                     return Mono.just(response);
                 })

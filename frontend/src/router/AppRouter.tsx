@@ -17,6 +17,7 @@ import ProfilePage from "../pages/admin/ProfilePage"
 import SettingsPage from "../pages/admin/SettingsPage"
 import Navbar from "../components/layout/Navbar"
 import TransferPage from "../pages/client/TransferPage"
+import CompleteProfilePage from "../pages/client/CompleteProfilePage"
 import { SessionManager } from "../components/auth/SessionManager"
 
 export const AppRouter = () => {
@@ -58,6 +59,9 @@ export const AppRouter = () => {
 
       {/* --- Rutas Privadas con LayoutDashboard (CON Sidebar, SIN Footer) --- */}
       <Route element={<PrivateRoute allowedRoles={['ROLE_CLIENTE']} />}>
+        {/* Ruta para completar perfil - Fuera del Layout si queremos que sea pantalla completa */}
+        <Route path="/complete-profile" element={<CompleteProfilePage />} />
+
         <Route element={
           <SessionManager>
             <LayoutDashboard />

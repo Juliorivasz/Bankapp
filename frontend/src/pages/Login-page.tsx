@@ -9,6 +9,7 @@ import fondoLogin from "/fondo_wallet.webp"
 import { EyeIcon, EyeOffIcon, Loader2 } from "lucide-react"
 import { authService } from "../service/auth.service"
 import { ExceptionAlert } from "../utils/exceptions/ExceptionAlert"
+import { toast } from "react-toastify"
 import { AxiosError } from "axios"
 import { EmailIcon, LockIcon } from "../components/icons/IconsRoutes"
 import { useAuthStore } from "../store/auth.store"
@@ -69,14 +70,12 @@ export default function LoginPage() {
         password: password
       });
 
-      const token = response.token; 
+      // CRÍTICO: Actualizar el store de Zustand
+      loginToStore(response.token, response.perfilCompleto);
+      toast.success('¡Bienvenido de nuevo!');
       
-      // CRÍTICO: Actualizar el store de Zustand con el token
-      loginToStore(token);
-      
-      ExceptionAlert.success("¡Bienvenido de nuevo!");
-      
-      // El navigate se ejecutará después de que el store se actualice
+      // La redirección inicial ya la manejará el componente, 
+      // pero si el perfil está incompleto, PrivateRoute lo interceptará.
       navigate("/dashboard");
       
 

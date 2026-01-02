@@ -126,3 +126,19 @@ CREATE TABLE IF NOT EXISTS pais_moneda (
     FOREIGN KEY (id_pais) REFERENCES pais(id_pais),
     FOREIGN KEY (id_moneda) REFERENCES tipomoneda(id_moneda)
     );
+
+CREATE TABLE IF NOT EXISTS notificacion (
+    id_notificacion BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario BIGINT NOT NULL,
+    titulo VARCHAR(255) NOT NULL,
+    mensaje TEXT NOT NULL,
+    tipo VARCHAR(50) NOT NULL,
+    leida BOOLEAN DEFAULT FALSE,
+    eliminada BOOLEAN DEFAULT FALSE,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_lectura TIMESTAMP NULL,
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    INDEX idx_notificacion_usuario (id_usuario),
+    INDEX idx_notificacion_leida (id_usuario, leida),
+    INDEX idx_notificacion_fecha (fecha_creacion DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

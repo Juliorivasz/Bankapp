@@ -1,6 +1,7 @@
-import { Menu, Bell, ChevronRight } from 'lucide-react';
+import { Menu, ChevronRight } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../../store/auth.store';
+import NotificationBell from '../NotificationBell';
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -45,11 +46,7 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
           {/* Right: Notifications + User */}
           <div className="flex items-center gap-4">
             {/* Notifications */}
-            <button className="relative p-2 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all">
-              <Bell className="w-5 h-5" />
-              {/* Badge */}
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
+            <NotificationBell />
 
             {/* User Avatar */}
             <div className="hidden sm:flex items-center gap-3">

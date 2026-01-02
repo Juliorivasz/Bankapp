@@ -1,6 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { useAuthStore } from "../store/auth.store";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 export const FullScreenLoader = () => (
   <div className="flex h-screen w-full items-center justify-center bg-[var(--color-background)]">
@@ -19,7 +19,8 @@ interface PrivateRouteProps {
 }
 
 export const PrivateRoute: React.FC<PrivateRouteProps> = ({ allowedRoles }) => {
-  const { isAuthenticated, isLoading, user } = useAuthStore();
+  const { isAuthenticated, isLoading, user, isProfileComplete } = useAuthStore();
+  const location = useLocation();
 
   // 1. Espera a que el store verifique el token
   if (isLoading) {
@@ -31,7 +32,18 @@ export const PrivateRoute: React.FC<PrivateRouteProps> = ({ allowedRoles }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // 3. Verificación de Roles (si se especifican)
+  // 3. Verificación de Perfil Completo
+  // Si el perfil está incompleto y NO estamos en /complete-profile, redirigir
+  if (!isProfileComplete && location.pathname !== '/complete-profile') {
+    return <Navigate to="/complete-profile" replace />;
+  }
+
+  // Si el perfil YA está completo y tratamos de entrar a /complete-profile, redirigir al dashboard
+  if (isProfileComplete && location.pathname === '/complete-profile') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // 4. Verificación de Roles (si se especifican)
   if (allowedRoles && user) {
     // Comprueba si el array de roles del usuario incluye AL MENOS UNO de los roles permitidos
     const hasRole = allowedRoles.some(role => user.roles.includes(role));
@@ -43,6 +55,6 @@ export const PrivateRoute: React.FC<PrivateRouteProps> = ({ allowedRoles }) => {
     }
   }
 
-  // 4. Si está logueado y tiene los roles, muestra la página protegida.
+  // 5. Si está logueado y tiene los roles, muestra la página protegida.
   return <Outlet />;
 };

@@ -11,6 +11,8 @@ import com.bankapp.model.dto.transferencia.TransferenciaDTO;
 import com.bankapp.model.dto.wallet.NuevaWalletDTO;
 import com.bankapp.repository.TipoMonedaRepository;
 import com.bankapp.service.DashboardService;
+import com.bankapp.service.NotificacionService;
+import com.bankapp.service.PerfilService;
 import com.bankapp.service.SoporteService;
 import com.bankapp.service.TransaccionService;
 import com.bankapp.service.UsuarioService;
@@ -38,6 +40,8 @@ public class ClienteController {
         private final SoporteService soporteService;
         private final TipoMonedaRepository tipoMonedaRepository;
         private final DashboardService dashboardService;
+        private final PerfilService perfilService;
+        private final NotificacionService notificacionService;
 
         @GetMapping("/dashboard")
         public Mono<DashboardDTO> obtenerDashboard(
@@ -115,7 +119,7 @@ public class ClienteController {
         }
 
         /**
-         * Permite al cliente crear una wallet adicional para una moneda soportada.
+          * Permite al cliente crear una wallet adicional para una moneda soportada.
          * Ruta: POST /api/cliente/wallets/adicionar
          */
         @PostMapping("/wallet/nueva")
@@ -225,6 +229,74 @@ public class ClienteController {
                     .obtenerIdUsuarioPorNombreUsuario(authentication.getName())
                     .flatMap(idUsuario -> transaccionService.buscarTransacciones(
                         idUsuario, idWallet, fechaInicio, fechaFin, tipo, busqueda, page, size
-                    )));
+                     )));
+        }
+
+        // --- 11. Gestión de Perfil ---
+        @GetMapping("/perfil")
+        public Mono<com.bankapp.model.dto.perfil.PerfilDTO> obtenerPerfil(Mono<Authentication> auth) {
+            return auth.flatMap(authentication -> perfilService.obtenerPerfil(authentication.getName()));
+        }
+
+        @PutMapping("/perfil")
+        public Mono<com.bankapp.model.dto.perfil.PerfilDTO> actualizarPerfil(
+            Mono<Authentication> auth,
+            @RequestBody com.bankapp.model.dto.perfil.ActualizarPerfilDTO dto
+        ) {
+            return auth.flatMap(authentication -> perfilService.actualizarPerfil(authentication.getName(), dto));
+        }
+
+        @PutMapping("/perfil/password")
+        @ResponseStatus(HttpStatus.NO_CONTENT)
+        public Mono<Void> cambiarPassword(
+            Mono<Authentication> auth,
+            @RequestBody com.bankapp.model.dto.perfil.CambiarPasswordDTO dto
+        ) {
+            return auth.flatMap(authentication -> perfilService.cambiarPassword(authentication.getName(), dto));
+        }
+
+        @PostMapping("/perfil/completar")
+        public Mono<com.bankapp.model.dto.perfil.PerfilDTO> completarPerfil(
+            Mono<Authentication> auth,
+            @RequestBody com.bankapp.model.dto.perfil.ActualizarPerfilDTO dto
+        ) {
+            return auth.flatMap(authentication -> perfilService.completarPerfilPendiente(authentication.getName(), dto));
+        }
+
+        // --- 12. Gestión de Notificaciones ---
+        @GetMapping("/notificaciones")
+        public Flux<com.bankapp.model.Notificacion> obtenerNotificaciones(Mono<Authentication> auth) {
+            return auth.flatMap(authentication -> usuarioService.obtenerIdUsuarioPorNombreUsuario(authentication.getName()))
+                    .flatMapMany(notificacionService::obtenerNotificaciones);
+        }
+
+        @GetMapping("/notificaciones/no-leidas")
+        public Flux<com.bankapp.model.Notificacion> obtenerNotificacionesNoLeidas(Mono<Authentication> auth) {
+            return auth.flatMap(authentication -> usuarioService.obtenerIdUsuarioPorNombreUsuario(authentication.getName()))
+                    .flatMapMany(notificacionService::obtenerNoLeidas);
+        }
+
+        @GetMapping("/notificaciones/contador")
+        public Mono<Long> contarNotificacionesNoLeidas(Mono<Authentication> auth) {
+            return auth.flatMap(authentication -> usuarioService.obtenerIdUsuarioPorNombreUsuario(authentication.getName()))
+                    .flatMap(notificacionService::contarNoLeidas);
+        }
+
+        @PutMapping("/notificaciones/{id}/leer")
+        public Mono<com.bankapp.model.Notificacion> marcarNotificacionComoLeida(@PathVariable Long id) {
+            return notificacionService.marcarComoLeida(id);
+        }
+
+        @PutMapping("/notificaciones/leer-todas")
+        @ResponseStatus(HttpStatus.NO_CONTENT)
+        public Mono<Void> marcarTodasComoLeidas(Mono<Authentication> auth) {
+            return auth.flatMap(authentication -> usuarioService.obtenerIdUsuarioPorNombreUsuario(authentication.getName()))
+                    .flatMap(notificacionService::marcarTodasComoLeidas);
+        }
+
+        @DeleteMapping("/notificaciones/{id}")
+        @ResponseStatus(HttpStatus.NO_CONTENT)
+        public Mono<Void> eliminarNotificacion(@PathVariable Long id) {
+            return notificacionService.eliminarNotificacion(id);
         }
 }

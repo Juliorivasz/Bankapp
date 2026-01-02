@@ -27,6 +27,7 @@ public class TransaccionService {
     private final WalletRepository walletRepository;
     private final TransaccionRepository transaccionRepository;
     private final com.bankapp.repository.TipoMonedaRepository tipoMonedaRepository;
+    private final NotificacionService notificacionService;
 
     /**
      * Implementa la lógica de partida doble: debita al origen y acredita al destino.
@@ -112,7 +113,28 @@ public class TransaccionService {
                                         walletOrigen.getNumeroCuenta() // <--- Cuenta Origen (Para referencia inversa)
                                 );
 
-                                return Mono.zip(debito, credito).map(result -> result.getT1());
+                                // Crear notificaciones para ambos usuarios
+                                return Mono.zip(debito, credito)
+                                    .flatMap(transacciones -> {
+                                        // Notificación para el remitente
+                                        Mono<Void> notifOrigen = notificacionService.crearNotificacion(
+                                            walletOrigen.getIdUsuario(),
+                                            "Transferencia Enviada",
+                                            String.format("Enviaste %s a %s", monto, nombreDestino),
+                                            com.bankapp.model.Enum.TipoNotificacion.INFO
+                                        ).then();
+                                        
+                                        // Notificación para el destinatario
+                                        Mono<Void> notifDestino = notificacionService.crearNotificacion(
+                                            walletDestino.getIdUsuario(),
+                                            "Transferencia Recibida",
+                                            String.format("Recibiste %s de %s", monto, nombreOrigen),
+                                            com.bankapp.model.Enum.TipoNotificacion.SUCCESS
+                                        ).then();
+                                        
+                                        return Mono.zip(notifOrigen, notifDestino)
+                                            .thenReturn(transacciones.getT1());
+                                    });
                             });
                         });
                 });
@@ -194,7 +216,16 @@ public class TransaccionService {
                                     depositoDTO.getMonto(),
                                     EstadoTransaccion.EXITO,
                                     "Depósito de fondos externo (Verificado por " + idUsuario + ")"
-                            ));
+                            ))
+                            .flatMap(transaccion -> 
+                                // Crear notificación de depósito
+                                notificacionService.crearNotificacion(
+                                    idUsuario,
+                                    "Depósito Exitoso",
+                                    String.format("Se depositaron %s en tu cuenta", depositoDTO.getMonto()),
+                                    com.bankapp.model.Enum.TipoNotificacion.SUCCESS
+                                ).thenReturn(transaccion)
+                            );
                 });
     }
 
@@ -224,7 +255,16 @@ public class TransaccionService {
                                     retiroDTO.getMonto().negate(),
                                     EstadoTransaccion.PENDIENTE,
                                     "Retiro a cuenta externa (Verificado por " + idUsuario + ")"
-                            ));
+                            ))
+                            .flatMap(transaccion -> 
+                                // Crear notificación de retiro
+                                notificacionService.crearNotificacion(
+                                    idUsuario,
+                                    "Retiro Procesado",
+                                    String.format("Tu retiro de %s está siendo procesado", retiroDTO.getMonto()),
+                                    com.bankapp.model.Enum.TipoNotificacion.INFO
+                                ).thenReturn(transaccion)
+                            );
                 });
     }
 

@@ -229,7 +229,7 @@ export default function TransferPage() {
                         <History className="w-4 h-4" /> Recientes
                     </h3>
                     <div className="space-y-4">
-                        <RecentRecipientsList recipients={recentRecipients} onSelect={handleSelectRecent} />
+                        <RecentRecipientsList recipients={recentRecipients} onSelect={handleSelectRecent} selectedCurrency={moneda} />
                     </div>
                 </div>
             )}
@@ -383,7 +383,7 @@ export default function TransferPage() {
 // ----------------------------------------------------
 
 // Componente para manejar el estado de acordeón de destinatarios recientes
-function RecentRecipientsList({ recipients, onSelect }: { recipients: DestinatarioDTO[], onSelect: (d: DestinatarioDTO) => void }) {
+function RecentRecipientsList({ recipients, onSelect, selectedCurrency }: { recipients: DestinatarioDTO[], onSelect: (d: DestinatarioDTO) => void, selectedCurrency: string }) {
     const [expandedUser, setExpandedUser] = useState<string | null>(null);
 
     const grouped = Object.values(recipients.reduce((acc, curr) => {
@@ -399,7 +399,13 @@ function RecentRecipientsList({ recipients, onSelect }: { recipients: Destinatar
             acc[key].wallets.push(curr);
         }
         return acc;
-    }, {} as Record<string, { id: string, user: DestinatarioDTO, wallets: DestinatarioDTO[] }>));
+    }, {} as Record<string, { id: string, user: DestinatarioDTO, wallets: DestinatarioDTO[] }>))
+    // Filtrar usuarios que tengan al menos una wallet en la moneda seleccionada
+    .map(group => ({
+        ...group,
+        wallets: group.wallets.filter(w => w.moneda === selectedCurrency)
+    }))
+    .filter(group => group.wallets.length > 0);
 
     return (
         <>

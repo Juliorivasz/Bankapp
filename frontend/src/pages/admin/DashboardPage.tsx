@@ -228,7 +228,7 @@ export default function DashboardPage() {
       <div className="mb-8 animate-fadeIn flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
             <h1 className="text-3xl sm:text-4xl font-bold text-white">
-            Bienvenido de nuevo, <span className="text-[var(--color-primary)]">{user?.sub || dashboardData?.nombreUsuario || 'Usuario'}</span>
+            Bienvenido, <span className="text-[var(--color-primary)]">{user?.sub.toUpperCase() || dashboardData?.nombreUsuario.toUpperCase() || 'Usuario'}</span>
             </h1>
             <p className="text-base sm:text-lg text-white/70 mt-1">Aquí está el resumen de tu actividad financiera.</p>
         </div>

@@ -115,26 +115,31 @@ public class TransaccionService {
 
                                 // Crear notificaciones para ambos usuarios
                                 return Mono.zip(debito, credito)
-                                    .flatMap(transacciones -> {
-                                        // Notificación para el remitente
-                                        Mono<Void> notifOrigen = notificacionService.crearNotificacion(
-                                            walletOrigen.getIdUsuario(),
-                                            "Transferencia Enviada",
-                                            String.format("Enviaste %s a %s", monto, nombreDestino),
-                                            com.bankapp.model.Enum.TipoNotificacion.INFO
-                                        ).then();
-                                        
-                                        // Notificación para el destinatario
-                                        Mono<Void> notifDestino = notificacionService.crearNotificacion(
-                                            walletDestino.getIdUsuario(),
-                                            "Transferencia Recibida",
-                                            String.format("Recibiste %s de %s", monto, nombreOrigen),
-                                            com.bankapp.model.Enum.TipoNotificacion.SUCCESS
-                                        ).then();
-                                        
-                                        return Mono.zip(notifOrigen, notifDestino)
-                                            .thenReturn(transacciones.getT1());
-                                    });
+                                    .flatMap(transacciones -> 
+                                        tipoMonedaRepository.findById(walletOrigen.getIdMoneda())
+                                            .map(moneda -> moneda.getSimboloMoneda() != null ? moneda.getSimboloMoneda() : "$")
+                                            .defaultIfEmpty("$")
+                                            .flatMap(simbolo -> {
+                                                // Notificación para el remitente
+                                                Mono<Void> notifOrigen = notificacionService.crearNotificacion(
+                                                    walletOrigen.getIdUsuario(),
+                                                    "Transferencia Enviada",
+                                                    String.format("Enviaste %s %s a %s", simbolo, monto, nombreDestino),
+                                                    com.bankapp.model.Enum.TipoNotificacion.INFO
+                                                ).then();
+                                                
+                                                // Notificación para el destinatario
+                                                Mono<Void> notifDestino = notificacionService.crearNotificacion(
+                                                    walletDestino.getIdUsuario(),
+                                                    "Transferencia Recibida",
+                                                    String.format("Recibiste %s %s de %s", simbolo, monto, nombreOrigen),
+                                                    com.bankapp.model.Enum.TipoNotificacion.SUCCESS
+                                                ).then();
+                                                
+                                                return Mono.zip(notifOrigen, notifDestino)
+                                                    .thenReturn(transacciones.getT1());
+                                            })
+                                    );
                             });
                         });
                 });
@@ -218,13 +223,19 @@ public class TransaccionService {
                                     "Depósito de fondos externo (Verificado por " + idUsuario + ")"
                             ))
                             .flatMap(transaccion -> 
-                                // Crear notificación de depósito
-                                notificacionService.crearNotificacion(
-                                    idUsuario,
-                                    "Depósito Exitoso",
-                                    String.format("Se depositaron %s en tu cuenta", depositoDTO.getMonto()),
-                                    com.bankapp.model.Enum.TipoNotificacion.SUCCESS
-                                ).thenReturn(transaccion)
+                                // Obtener símbolo moneda
+                                tipoMonedaRepository.findById(wallet.getIdMoneda())
+                                    .map(moneda -> moneda.getSimboloMoneda() != null ? moneda.getSimboloMoneda() : "$")
+                                    .defaultIfEmpty("$")
+                                    .flatMap(simbolo -> 
+                                        // Crear notificación de depósito
+                                        notificacionService.crearNotificacion(
+                                            idUsuario,
+                                            "Depósito Exitoso",
+                                            String.format("Se depositaron %s %s en tu cuenta", simbolo, depositoDTO.getMonto()),
+                                            com.bankapp.model.Enum.TipoNotificacion.SUCCESS
+                                        ).thenReturn(transaccion)
+                                    )
                             );
                 });
     }
@@ -257,13 +268,19 @@ public class TransaccionService {
                                     "Retiro a cuenta externa (Verificado por " + idUsuario + ")"
                             ))
                             .flatMap(transaccion -> 
-                                // Crear notificación de retiro
-                                notificacionService.crearNotificacion(
-                                    idUsuario,
-                                    "Retiro Procesado",
-                                    String.format("Tu retiro de %s está siendo procesado", retiroDTO.getMonto()),
-                                    com.bankapp.model.Enum.TipoNotificacion.INFO
-                                ).thenReturn(transaccion)
+                                // Obtener símbolo moneda
+                                tipoMonedaRepository.findById(wallet.getIdMoneda())
+                                    .map(moneda -> moneda.getSimboloMoneda() != null ? moneda.getSimboloMoneda() : "$")
+                                    .defaultIfEmpty("$")
+                                    .flatMap(simbolo ->
+                                        // Crear notificación de retiro
+                                        notificacionService.crearNotificacion(
+                                            idUsuario,
+                                            "Retiro Procesado",
+                                            String.format("Tu retiro de %s %s está siendo procesado", simbolo, retiroDTO.getMonto()),
+                                            com.bankapp.model.Enum.TipoNotificacion.INFO
+                                        ).thenReturn(transaccion)
+                                    )
                             );
                 });
     }
@@ -360,6 +377,7 @@ public class TransaccionService {
                 return transaccionRepository.findDistinctCuentaDestinoByNumeroCuentaIn(numerosCuenta);
             })
             .flatMap(cbu -> walletRepository.findByNumeroCuenta(cbu)
+                .filter(walletDestino -> !walletDestino.getIdUsuario().equals(idUsuario)) // <--- FILTRO AGREGADO
                 .flatMap(walletDestino -> Mono.zip(
                         usuarioRepository.findById(walletDestino.getIdUsuario()),
                         tipoMonedaRepository.findById(walletDestino.getIdMoneda())

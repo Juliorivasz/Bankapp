@@ -52,9 +52,7 @@ export default function TopBar({ onMenuClick }: TopBarProps) {
             <div className="hidden sm:flex items-center gap-3">
               <div className="text-right">
                 <p className="text-sm font-medium text-white">{user?.sub || 'Usuario'}</p>
-                <p className="text-xs text-white/50">
-                  {user?.roles?.[0]?.replace('ROLE_', '') || 'Cliente'}
-                </p>
+
               </div>
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--color-primary)] to-purple-600 flex items-center justify-center text-white font-bold">
                 {user?.sub?.charAt(0).toUpperCase() || 'U'}

@@ -185,9 +185,9 @@ export default function ProfilePage() {
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent outline-none"
-                  required
+                  readOnly
+                  disabled
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/50 focus:border-transparent outline-none cursor-not-allowed"
                 />
               </div>
 

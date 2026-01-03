@@ -20,6 +20,7 @@ public class AuthController {
     private final UsuarioService usuarioService;
     private final SecurityUserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
+    private final com.bankapp.service.PerfilService perfilService; // Injected manually or via constructor lombok
     private final JwtUtil jwtUtil;
 
     /**
@@ -144,13 +145,19 @@ public class AuthController {
                                 });
                     }
 
-                    // 4. Login exitoso (Estado ACTIVA)
-                    String token = jwtUtil.generateToken(userDetails);
-                    JwtResponseDTO response = new JwtResponseDTO();
-                    response.setToken(token);
-                    response.setPerfilCompleto(true);
-
-                    return Mono.just(response);
+                    // 4. Login exitoso (Estado ACTIVA o ENABLED)
+                    // Verificar dinámicamente si el perfil está completo
+                    return usuarioService.obtenerPorNombreUsuario(loginDTO.getUsername())
+                        .flatMap(usuario -> 
+                            perfilService.verificarPerfilCompleto(usuario.getIdUsuario())
+                                .map(esCompleto -> {
+                                    String token = jwtUtil.generateToken(userDetails);
+                                    JwtResponseDTO response = new JwtResponseDTO();
+                                    response.setToken(token);
+                                    response.setPerfilCompleto(esCompleto);
+                                    return response;
+                                })
+                        );
                 })
                 .onErrorResume(e -> {
                     // Manejo centralizado de errores

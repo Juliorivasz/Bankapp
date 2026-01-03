@@ -49,6 +49,38 @@ export default function CompleteProfilePage() {
       return;
     }
 
+    // Validación de edad
+    const birthDate = new Date(formData.fechaNacimiento);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate() + 1)) { // +1 to be safe with timezones or just strict <
+        age--;
+    }
+
+    // Better approach for date input string YYYY-MM-DD to avoid timezone offset issues:
+    // Parse manually
+    const [year, month, day] = formData.fechaNacimiento.split('-').map(Number);
+    const birthDateObj = new Date(year, month - 1, day);
+    // ageDate was unused
+    // Actually simpler:
+    const cutoffDate = new Date();
+    cutoffDate.setFullYear(cutoffDate.getFullYear() - 18);
+    // If birthDate > cutoffDate (birthdate is after the date 18 years ago), then under 18.
+    
+    // Let's stick to the standard year/month diff which is clearer
+    let calcAge = today.getFullYear() - year;
+    const m = today.getMonth() - (month - 1);
+    if (m < 0 || (m === 0 && today.getDate() < day)) {
+        calcAge--;
+    }
+
+    if (calcAge < 18) {
+        toast.error('Debes ser mayor de 18 años para completar tu perfil.');
+        return;
+    }
+
     setLoading(true);
     try {
       await profileService.updateProfile(formData);

@@ -88,9 +88,7 @@ export default function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
                 {!isCollapsed && (
                   <>
                     <p className="text-white font-semibold truncate">{user?.sub || 'Usuario'}</p>
-                    <p className="text-white/60 text-sm truncate">
-                      {user?.roles?.[0]?.replace('ROLE_', '') || 'Cliente'}
-                    </p>
+
                   </>
                 )}
               </div>
@@ -199,9 +197,7 @@ export default function Sidebar({ isMobileOpen, onMobileClose }: SidebarProps) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-white font-semibold truncate">{user?.sub || 'Usuario'}</p>
-                      <p className="text-white/60 text-sm truncate">
-                        {user?.roles?.[0]?.replace('ROLE_', '') || 'Cliente'}
-                      </p>
+
                     </div>
                   </div>
                 </div>

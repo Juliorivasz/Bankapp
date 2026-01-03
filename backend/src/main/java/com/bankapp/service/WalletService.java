@@ -73,7 +73,16 @@ public class WalletService {
 
                                 // 3. Guardar el Historial y luego la Wallet (transaccional)
                                 return historialEstadoWalletRepository.save(historial)
-                                        .then(walletRepository.save(wallet));
+                                        .then(walletRepository.save(wallet))
+                                        .flatMap(savedWallet -> 
+                                            // 4. Notificar al usuario (Dueño de la wallet)
+                                            notificacionService.crearNotificacion(
+                                                savedWallet.getIdUsuario(),
+                                                "Estado de Billetera Actualizado",
+                                                "El estado de tu billetera " + savedWallet.getNumeroCuenta() + " ha cambiado a: " + nuevoEstado,
+                                                com.bankapp.model.Enum.TipoNotificacion.WARNING
+                                            ).thenReturn(savedWallet)
+                                        );
                             });
                 });
     }

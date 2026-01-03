@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDate;
+import java.time.Period;
 import reactor.core.publisher.Mono;
 
 @Service
@@ -55,20 +57,8 @@ public class PerfilService {
         return usuarioRepository.findByNombreUsuario(nombreUsuario)
                 .switchIfEmpty(Mono.error(new RuntimeException("Usuario no encontrado")))
                 .flatMap(usuario -> {
-                    // Actualizar email si cambió
-                    if (dto.getEmail() != null && !dto.getEmail().equals(usuario.getEmail())) {
-                        // Verificar que el nuevo email no esté en uso
-                        return usuarioRepository.findByEmail(dto.getEmail())
-                                .hasElement()
-                                .flatMap(existe -> {
-                                    if (existe) {
-                                        return Mono.error(new IllegalArgumentException("El email ya está en uso"));
-                                    }
-                                    usuario.setEmail(dto.getEmail());
-                                    return usuarioRepository.save(usuario);
-                                })
-                                .then(Mono.just(usuario));
-                    }
+                    // Email no editable - Se mantiene el original del registro
+                    // if (dto.getEmail() != null && !dto.getEmail().equals(usuario.getEmail())) { ... }
                     return Mono.just(usuario);
                 })
                 .flatMap(usuario -> 
@@ -80,6 +70,14 @@ public class PerfilService {
                             if (dto.getApellido() != null) perfil.setApellido(dto.getApellido());
                             if (dto.getFechaNacimiento() != null) perfil.setFechaNacimiento(dto.getFechaNacimiento());
                             if (dto.getNumeroTelefono() != null) perfil.setNumeroTelefono(dto.getNumeroTelefono());
+
+                            // Validación de edad
+                            if (perfil.getFechaNacimiento() != null) {
+                                int edad = Period.between(perfil.getFechaNacimiento(), LocalDate.now()).getYears();
+                                if (edad < 18) {
+                                    return Mono.error(new IllegalArgumentException("Debes ser mayor de 18 años para utilizar la plataforma."));
+                                }
+                            }
                             
                             return perfilUsuarioRepository.save(perfil)
                                     .map(perfilActualizado -> new PerfilDTO(
@@ -91,7 +89,16 @@ public class PerfilService {
                                         perfilActualizado.getApellido(),
                                         perfilActualizado.getFechaNacimiento(),
                                         perfilActualizado.getNumeroTelefono()
-                                    ));
+                                    ))
+                                    .flatMap(perfilDTO -> 
+                                        // Notificar actualización de perfil
+                                        notificacionService.crearNotificacion(
+                                            usuario.getIdUsuario(),
+                                            "Perfil Actualizado",
+                                            "Los datos de tu perfil han sido actualizados correctamente.",
+                                            com.bankapp.model.Enum.TipoNotificacion.INFO
+                                        ).thenReturn(perfilDTO)
+                                    );
                         })
                 );
     }
@@ -185,6 +192,14 @@ public class PerfilService {
                             perfil.setApellido(dto.getApellido());
                             perfil.setFechaNacimiento(dto.getFechaNacimiento());
                             perfil.setNumeroTelefono(dto.getNumeroTelefono());
+
+                            // Validación de edad
+                            if (perfil.getFechaNacimiento() != null) {
+                                int edad = Period.between(perfil.getFechaNacimiento(), LocalDate.now()).getYears();
+                                if (edad < 18) {
+                                    return Mono.error(new IllegalArgumentException("Debes ser mayor de 18 años para registrarte."));
+                                }
+                            }
                             
                             return perfilUsuarioRepository.save(perfil)
                                     .map(perfilActualizado -> new PerfilDTO(

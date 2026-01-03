@@ -171,47 +171,53 @@ public class ClienteController {
         // --- 8. Validar Destinatario (Para Transferencias) ---
         @GetMapping("/destinatario/validar")
         public Mono<com.bankapp.model.dto.transferencia.DestinatarioDTO> validarDestinatario(
+            Mono<Authentication> auth,
             @RequestParam String dato, // Alias o CBU
             @RequestParam String moneda // Simbolo (ARS, USD) para validar compatibilidad
         ) {
             // Lógica duplicada de TransaccionService (idealmente mover a un servicio)
-            return tipoMonedaRepository.findBySimboloMoneda(moneda)
-                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Moneda no soportada")))
-                .flatMap(monedaEntity -> {
-                    // Buscar por CBU
-                    return walletService.buscarPorNumeroCuenta(dato)
-                        .flatMap(wallet -> usuarioService.obtenerUsuarioPorId(wallet.getIdUsuario())
-                            .map(u -> {
-                                if (!wallet.getIdMoneda().equals(monedaEntity.getIdMoneda())) {
-                                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La cuenta destino no es de moneda " + moneda);
-                                }
-                                return new com.bankapp.model.dto.transferencia.DestinatarioDTO(
-                                    u.getIdUsuario(),
-                                    u.getNombreUsuario(), // Retornamos nombreUsuario como "Nombre Completo" por ahora
-                                    u.getNombreUsuario(),
-                                    wallet.getNumeroCuenta(),
-                                    "BankApp",
-                                    moneda // Asumimos que la wallet encontrada es de esta moneda
-                                );
-                            }))
-                        .switchIfEmpty(
-                            // Buscar por Alias/Username
-                            usuarioService.obtenerIdUsuarioPorNombreUsuario(dato)
-                                .flatMap(idUsuario -> walletService.buscarPorUsuarioYMoneda(idUsuario, monedaEntity.getIdMoneda())
-                                    .flatMap(wallet -> usuarioService.obtenerUsuarioPorId(idUsuario)
-                                        .map(u -> new com.bankapp.model.dto.transferencia.DestinatarioDTO(
+            return auth.flatMap(authentication -> usuarioService.obtenerIdUsuarioPorNombreUsuario(authentication.getName()))
+                .flatMap(idUsuarioAuth -> 
+                    tipoMonedaRepository.findBySimboloMoneda(moneda)
+                        .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Moneda no soportada")))
+                        .flatMap(monedaEntity -> {
+                            // Buscar por CBU
+                            return walletService.buscarPorNumeroCuenta(dato)
+                                .filter(wallet -> !wallet.getIdUsuario().equals(idUsuarioAuth)) // <--- NO permitirse a sí mismo
+                                .flatMap(wallet -> usuarioService.obtenerUsuarioPorId(wallet.getIdUsuario())
+                                    .map(u -> {
+                                        if (!wallet.getIdMoneda().equals(monedaEntity.getIdMoneda())) {
+                                            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La cuenta destino no es de moneda " + moneda);
+                                        }
+                                        return new com.bankapp.model.dto.transferencia.DestinatarioDTO(
                                             u.getIdUsuario(),
-                                            u.getNombreUsuario(),
+                                            u.getNombreUsuario(), // Retornamos nombreUsuario como "Nombre Completo" por ahora
                                             u.getNombreUsuario(),
                                             wallet.getNumeroCuenta(),
                                             "BankApp",
-                                            moneda // Symbol
-                                        ))
-                                    )
+                                            moneda // Asumimos que la wallet encontrada es de esta moneda
+                                        );
+                                    }))
+                                .switchIfEmpty(
+                                    // Buscar por Alias/Username
+                                    usuarioService.obtenerIdUsuarioPorNombreUsuario(dato)
+                                        .filter(idEncontrado -> !idEncontrado.equals(idUsuarioAuth)) // <--- NO permitirse a sí mismo
+                                        .flatMap(idUsuario -> walletService.buscarPorUsuarioYMoneda(idUsuario, monedaEntity.getIdMoneda())
+                                            .flatMap(wallet -> usuarioService.obtenerUsuarioPorId(idUsuario)
+                                                .map(u -> new com.bankapp.model.dto.transferencia.DestinatarioDTO(
+                                                    u.getIdUsuario(),
+                                                    u.getNombreUsuario(),
+                                                    u.getNombreUsuario(),
+                                                    wallet.getNumeroCuenta(),
+                                                    "BankApp",
+                                                    moneda // Symbol
+                                                ))
+                                            )
+                                        )
                                 )
-                        )
-                        .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Destinatario no encontrado o no tiene cuenta en " + moneda)));
-                });
+                                .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Destinatario no encontrado, es usted mismo o no tiene cuenta en " + moneda)));
+                        })
+                );
         }
         // --- 10. Busqueda Avanzada de Transacciones ---
         @GetMapping("/transacciones/busqueda")
